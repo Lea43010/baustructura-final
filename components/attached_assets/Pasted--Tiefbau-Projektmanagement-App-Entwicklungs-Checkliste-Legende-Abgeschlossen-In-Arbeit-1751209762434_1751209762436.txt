@@ -1,0 +1,379 @@
+🏗️ Tiefbau-Projektmanagement-App - Entwicklungs-Checkliste
+📋 Legende
+
+✅ Abgeschlossen
+🚧 In Arbeit
+⏳ Geplant
+🔥 Kritisch (Must-have)
+⭐ Wichtig (Should-have)
+💡 Optional (Nice-to-have)
+
+
+🔧 1. GRUNDLEGENDE SETUP & KONFIGURATION
+Replit Projekt-Setup
+
+ 🔥 Replit Projekt erstellt und konfiguriert
+ 🔥 .replit Konfigurationsdatei erstellt
+ 🔥 package.json mit allen Dependencies
+ 🔥 Projektstruktur angelegt (/backend, /frontend, /database)
+ 🔥 README.md mit Setup-Anweisungen erstellt
+
+Umgebungsvariablen
+
+ 🔥 DATABASE_URL (PostgreSQL) konfiguriert
+ 🔥 JWT_SECRET gesetzt
+ ⭐ GOOGLE_MAPS_API_KEY eingerichtet
+ ⭐ OPENAI_API_KEY konfiguriert
+ ⭐ SMTP_HOST, SMTP_USER, SMTP_PASS für Email
+ 💡 SFTP_HOST, SFTP_USERNAME, SFTP_PRIVATE_KEY
+ 🔥 CORS_ORIGIN und Security-Settings
+
+Dependencies Installation
+
+ 🔥 Express.js, bcrypt, jsonwebtoken
+ 🔥 PostgreSQL Client (pg)
+ 🔥 React.js, React Router
+ ⭐ Google Maps React (@googlemaps/react-wrapper)
+ ⭐ NodeMailer für Email-Service
+ ⭐ SSH2-SFTP-Client für Datei-Backup
+ ⭐ OpenAI SDK
+ 💡 Multer für File-Upload
+ 💡 Sharp für Bildverarbeitung
+
+
+🗄️ 2. DATENBANK SETUP
+PostgreSQL Schema
+
+ 🔥 tbluser - Benutzertabelle mit Rollen
+ 🔥 tblproject - Zentrale Projektdaten
+ 🔥 tblcustomer - Kundendaten
+ 🔥 tblcompany - Firmendaten
+ 🔥 tblperson - Ansprechpartner
+ 🔥 tblattachment - Dokumente/Dateien
+ ⭐ tbllocation - GPS-Koordinaten
+ ⭐ tblvoice_note - Sprachaufnahmen
+ ⭐ tblphoto_inspection - Foto-Dokumentation
+ ⭐ tblemail_log - Email-Verlauf
+ 💡 tblsftp_sync - SFTP-Synchronisation
+ 🔥 tbllogin_log - Login-Audit
+ ⭐ tblai_log - AI-Interaktionen (EU AI Act)
+
+Datenbank-Konfiguration
+
+ 🔥 Foreign Key Relationships erstellt
+ 🔥 Indizes für Performance angelegt
+ 🔥 Migration Scripts funktionsfähig
+ ⭐ Seed-Daten mit Beispiel-Projekten
+ ⭐ GPS-Testdaten für Standorte
+ 💡 Backup-Strategie implementiert
+
+
+🔐 3. AUTHENTIFIZIERUNG & ROLLEN
+Backend Authentication
+
+ 🔥 JWT Token-System implementiert
+ 🔥 Passwort-Hashing mit bcrypt
+ 🔥 Login/Logout API-Endpunkte
+ 🔥 Registrierung mit Email-Validierung
+ ⭐ Passwort-Reset Funktionalität
+ 🔥 Middleware für Token-Validierung
+
+Rollensystem
+
+ 🔥 3-stufiges Rollen-System (Admin/Manager/User)
+ 🔥 Rollenbasierte API-Berechtigung
+ 🔥 Middleware für Rollen-Prüfung
+ ⭐ Granulare Berechtigungen pro Feature
+ ⭐ Admin-Benutzer können Rollen ändern
+
+Frontend Authentication
+
+ 🔥 Login-Seite erstellt
+ 🔥 Registrierungs-Seite erstellt
+ 🔥 Protected Routes implementiert
+ 🔥 AuthContext/Hook für Zustandsverwaltung
+ ⭐ Automatische Token-Erneuerung
+ 💡 Social Login (Google/Microsoft)
+
+
+🌐 4. FRONTEND - SEITEN & ROUTING
+Marketing & Landing Page
+
+ 🔥 Öffentliche Landing Page (/)
+ ⭐ Hero-Sektion mit Tiefbau-Fokus
+ ⭐ Features-Übersicht
+ 💡 Testimonials-Sektion
+ 💡 Preise/Angebote-Sektion
+ ⭐ Call-to-Action für Registrierung
+
+Dashboard-Seiten
+
+ 🔥 Administrator Dashboard (/admin)
+ 🔥 Manager Dashboard (/manager)
+ 🔥 User Dashboard (/dashboard)
+ 🔥 Automatische Weiterleitung nach Rolle
+ ⭐ 404/403 Error-Seiten
+ ⭐ Rollenbasierte Navigation
+
+Core-Seiten
+
+ 🔥 Projekt-Liste und -Details
+ 🔥 Kunden-Verwaltung
+ 🔥 Firmen-Verwaltung
+ ⭐ Benutzer-Profil Seite
+ ⭐ Einstellungen-Seite
+
+
+🚀 5. BACKEND API-ENDPUNKTE
+Core CRUD APIs
+
+ 🔥 /api/auth/* - Authentifizierung
+ 🔥 /api/projects/* - Projekt-Management
+ 🔥 /api/customers/* - Kunden-Verwaltung
+ 🔥 /api/companies/* - Firmen-Verwaltung
+ 🔥 /api/users/* - Benutzer-Verwaltung (Admin)
+ ⭐ /api/attachments/* - Datei-Upload/Download
+
+Erweiterte APIs
+
+ ⭐ /api/locations/* - GPS-Standorte
+ ⭐ /api/voice-notes/* - Sprachaufnahmen
+ ⭐ /api/photos/* - Foto-Dokumentation
+ ⭐ /api/emails/* - Email-System
+ 💡 /api/sftp/* - SFTP-Synchronisation
+ ⭐ /api/ai/* - OpenAI Integration
+
+API Security & Validation
+
+ 🔥 Input-Validierung für alle Endpunkte
+ 🔥 Rate-Limiting implementiert
+ 🔥 CORS richtig konfiguriert
+ ⭐ API-Dokumentation (Swagger/OpenAPI)
+ ⭐ Error-Handling und Logging
+
+
+🗺️ 6. GOOGLE MAPS INTEGRATION
+Maps Grundfunktionen
+
+ ⭐ Google Maps API eingebunden
+ ⭐ Interaktive Karte im Dashboard
+ ⭐ Projekt-Marker auf Karte anzeigen
+ ⭐ GPS-Koordinaten bei Projekt-Erstellung
+ ⭐ Adress-Suche mit Geocoding
+
+Erweiterte Maps-Features
+
+ 💡 Routing zwischen Projektstandorten
+ 💡 Geofencing für Anwesenheitskontrolle
+ 💡 Offline-Karten für mobile Nutzung
+ 💡 Heatmap für Projektdichte
+ 💡 Street View Integration
+
+
+📱 7. MOBILE & MEDIA FEATURES
+Kamera-Integration
+
+ ⭐ Foto-Aufnahme für Schadensdokumentation
+ ⭐ Video-Aufnahme für Baufortschritt
+ ⭐ Automatische GPS-Koordinaten bei Fotos
+ 💡 Bildkomprimierung für mobile Übertragung
+ 💡 Bildannotation mit Markierungen
+
+Sprach-Funktionen
+
+ ⭐ Speech-to-Text für Notizen
+ ⭐ Text-to-Speech für Anweisungen
+ ⭐ Sprachnotizen-Aufnahme
+ 💡 Mehrsprachige Unterstützung (DE/EN)
+ 💡 Noise-Cancelling für Baustellen
+
+Mobile Optimierung
+
+ 🔥 Responsive Design für alle Bildschirmgrößen
+ ⭐ Touch-optimierte Navigation
+ ⭐ PWA-Manifest für Installation
+ ⭐ Service Worker für Offline-Funktionalität
+ 💡 Haptic Feedback
+ 💡 Dark Mode für Outdoor-Nutzung
+
+
+📧 8. EMAIL-SYSTEM & SUPPORT
+Email-Grundfunktionen
+
+ ⭐ NodeMailer SMTP-Konfiguration
+ ⭐ Email-Templates (Handlebars)
+ ⭐ Automatische Projekt-Updates
+ ⭐ Benachrichtigungen für Deadlines
+ ⭐ Email-Queue für zuverlässigen Versand
+
+Support-System
+
+ 💡 Support-Ticket Erstellung
+ 💡 Email-basierte Ticket-Kommunikation
+ 💡 Prioritätsstufen für Anfragen
+ 💡 SLA-Tracking und Eskalation
+ 💡 Support-Dashboard für Admins
+
+
+💾 9. SFTP-INTEGRATION (MANAGER)
+SFTP Grundfunktionen
+
+ 💡 SSH2-SFTP-Client eingerichtet
+ 💡 Sichere Verbindung mit Private Keys
+ 💡 Automatisches Backup für Manager-Dokumente
+ 💡 Projektbasierte Ordner-Struktur
+ 💡 Batch-Upload für mehrere Dateien
+
+SFTP Management
+
+ 💡 Backup-Status Dashboard
+ 💡 Manuelle und automatische Synchronisation
+ 💡 Versionierung von Dokumenten
+ 💡 Download von SFTP in die App
+ 💡 Fehlerbehandlung und Retry-Mechanismus
+
+
+🤖 10. OPENAI INTEGRATION (EU AI ACT)
+AI-Grundfunktionen
+
+ ⭐ OpenAI API-Client eingerichtet
+ ⭐ Automatische Projektbeschreibung
+ ⭐ Risikobewertung für Bauprojekte
+ ⭐ Dokumentzusammenfassungen
+ 💡 AI-Chat für Projektberatung
+
+EU AI Act Compliance
+
+ ⭐ KI-Kennzeichnung aller AI-Ausgaben
+ ⭐ Vollständiges AI-Interaktions-Logging
+ ⭐ Datenschutz: Keine persönlichen Daten an OpenAI
+ ⭐ Transparenz über AI-Limitationen
+ ⭐ User-Einverständnis für AI-Features
+
+
+🔒 11. SICHERHEIT & COMPLIANCE
+Datenschutz
+
+ 🔥 DSGVO-konforme Datenverarbeitung
+ 🔥 Recht auf Löschung implementiert
+ 🔥 Datenportabilität ermöglicht
+ ⭐ Privacy Policy und AGB
+ ⭐ Cookie-Consent Banner
+
+Security
+
+ 🔥 TLS/HTTPS für alle Verbindungen
+ 🔥 SQL-Injection Schutz
+ 🔥 XSS-Schutz implementiert
+ 🔥 CSRF-Token für Forms
+ ⭐ Content Security Policy (CSP)
+ ⭐ Security Headers konfiguriert
+
+
+🧪 12. TESTING & QUALITÄTSSICHERUNG
+Backend Testing
+
+ ⭐ Unit Tests für alle API-Endpunkte
+ ⭐ Integration Tests für Datenbank
+ ⭐ API Response Validation Tests
+ 💡 SFTP-Connection Tests
+ 💡 Email-Service Tests
+
+Frontend Testing
+
+ ⭐ Component Tests (React Testing Library)
+ ⭐ User Flow Tests (E2E)
+ ⭐ Mobile Responsiveness Tests
+ 💡 PWA Installation Tests
+ 💡 Cross-Browser Compatibility
+
+Spezial-Testing
+
+ 💡 Google Maps API Tests
+ 💡 Camera/Voice API Tests
+ 💡 GPS Accuracy Tests
+ 💡 Offline-Sync Tests
+ 💡 Performance Load Tests
+
+
+🚀 13. DEPLOYMENT & MONITORING
+Replit Deployment
+
+ 🔥 App erfolgreich deployed auf Replit
+ 🔥 Datenbank-Connection funktioniert
+ 🔥 Alle Umgebungsvariablen gesetzt
+ ⭐ Automatische Restarts konfiguriert
+ ⭐ Custom Domain eingerichtet (optional)
+
+Monitoring & Logging
+
+ ⭐ Error-Logging implementiert
+ ⭐ Performance-Monitoring eingerichtet
+ ⭐ API-Usage Tracking
+ 💡 Uptime-Monitoring
+ 💡 User-Analytics Dashboard
+
+Backup & Recovery
+
+ ⭐ Automatische Datenbank-Backups
+ 💡 Disaster Recovery Plan
+ 💡 Data Migration Scripts
+ 💡 Rollback-Strategie
+
+
+📊 14. PERFORMANCE & OPTIMIERUNG
+Frontend Performance
+
+ ⭐ Bundle-Size optimiert
+ ⭐ Lazy Loading für Komponenten
+ ⭐ Image-Compression implementiert
+ 💡 CDN für statische Assets
+ 💡 Caching-Strategien
+
+Backend Performance
+
+ ⭐ Datenbank-Indizes optimiert
+ ⭐ API Response-Caching
+ ⭐ Connection Pooling
+ 💡 Redis für Session-Storage
+ 💡 Background Jobs für Heavy Tasks
+
+Mobile Performance
+
+ ⭐ < 3s Ladezeit auf 3G
+ ⭐ Offline-First Architektur
+ ⭐ Battery-optimierte Background-Services
+ 💡 Progressive Image Loading
+ 💡 Adaptive Media Quality
+
+
+📈 ENTWICKLUNGSFORTSCHRITT
+Status-Übersicht
+🔥 Kritische Features:  ___/45 (___%)
+⭐ Wichtige Features:   ___/58 (___%)
+💡 Optionale Features:  ___/47 (___%)
+
+GESAMT: ___/150 (___%)
+Nächste Schritte
+
+ Phase 1: Backend + Auth + Datenbank (🔥 Features)
+ Phase 2: Frontend + Core-Features (⭐ Features)
+ Phase 3: Erweiterte Integrationen (💡 Features)
+ Phase 4: Testing + Deployment
+ Phase 5: Performance-Optimierung
+
+
+📝 NOTIZEN & ISSUES
+Bekannte Probleme
+
+[ ]
+
+Geplante Verbesserungen
+
+[ ]
+
+API-Limits & Kosten
+
+ Google Maps API Quota: _____ Requests/Tag
+ OpenAI API Limit: _____ Tokens/Monat
+ Email-Service: _____ Emails/Tag

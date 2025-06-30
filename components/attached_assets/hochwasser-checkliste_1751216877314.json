@@ -1,0 +1,242 @@
+{
+  "title": "Checkliste zum Betrieb bei Hochwasserereignis oder Übung",
+  "organisation": "Wasserwirtschaftsamt Aschaffenburg - Betriebshandbuch Hochwasserschutz Lohr",
+  "hauptcheckliste": {
+    "beginn_des_betriebes": {
+      "title": "BEGINN des Betriebes",
+      "aufgaben": [
+        {
+          "nr": 1,
+          "beschreibung": "Checkliste mit Datum des Aufbaubeginns und Pegelstand versehen",
+          "erledigt": false,
+          "datum": null,
+          "pegelstand_cm": null
+        },
+        {
+          "nr": 2,
+          "beschreibung": "Alarmpläne in Einsatzzentrale auslegen; Beginn mit Alarmstufe 1, weitere Alarmstufen in Abhängigkeit der HW-Pegel verwenden",
+          "erledigt": false
+        },
+        {
+          "nr": 3,
+          "beschreibung": "Arbeitsanweisungen (bei Bedarf Übersichtslagepläne) entsprechend den Alarmplänen ausgeben und abarbeiten",
+          "erledigt": false
+        },
+        {
+          "nr": 4,
+          "beschreibung": "Deichwachen einteilen",
+          "erledigt": false
+        }
+      ]
+    },
+    "ende_des_betriebes": {
+      "title": "ENDE des Betriebes",
+      "aufgaben": [
+        {
+          "nr": 1,
+          "beschreibung": "Checkliste mit Datum des Abbaubeginns versehen",
+          "erledigt": false,
+          "datum": null
+        },
+        {
+          "nr": 2,
+          "beschreibung": "Alarmpläne und Arbeitsanweisungen 'Aufbau' im Teil 2 Register 6 ablegen",
+          "erledigt": false
+        },
+        {
+          "nr": 3,
+          "beschreibung": "Abbauplan in Einsatzzentrale auslegen (nicht nach Alarmstufen gegliedert)",
+          "erledigt": false
+        },
+        {
+          "nr": 4,
+          "beschreibung": "Arbeitsanweisungen ausgeben und abarbeiten (bei unerreichten Alarmstufen nicht verwendete Bauteile auf Schäden kontrollieren und diese ggf. in den Arbeitsanweisungen kennzeichnen)",
+          "erledigt": false
+        },
+        {
+          "nr": 5,
+          "beschreibung": "Eintragung (Aufbau, Abbau, Unterschrift, Übung) in die Liste 'Chronik der Hochwasserschutzanlage' (im Teil 3 unter Register 2)",
+          "erledigt": false
+        },
+        {
+          "nr": 6,
+          "beschreibung": "Sämtliche Unterlagen sortieren, kontrollieren und in Teil 2 unter Register 6 abheften",
+          "erledigt": false
+        },
+        {
+          "nr": 7,
+          "beschreibung": "Neue Unterlagen für nächsten Betrieb vorbereiten, in Teil 2 bereitstellen",
+          "erledigt": false
+        }
+      ]
+    }
+  },
+  "absperrschieber": [
+    {
+      "nummer": 1,
+      "bezeichnung": "Absperrschieber DN 300",
+      "lage": "Lohr km 1,470, Nähe Kupfermühle",
+      "beschreibung": "Absperrschieber DN 300 mit Festspindel bis unter die Schachtdeckelunterkante",
+      "schadensfaelle": [
+        {
+          "problem": "festsitzender Deckel",
+          "massnahme": "mit Vorschlaghammer den Schacht freischlagen"
+        },
+        {
+          "problem": "kein Zulauf in Mühlgraben",
+          "massnahme": "prüfen ob Schieber geschlossen ist >> öffnen; Rechen am Zulaufrohr in Lohr räumen; Mindestwassermenge am Grundwehr zulaufen lassen"
+        },
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        },
+        {
+          "problem": "nur bei Wartung: Schieber lässt sich nicht schließen",
+          "massnahme": "Reparatur im Zuge der Wartung"
+        }
+      ]
+    },
+    {
+      "nummer": 2,
+      "bezeichnung": "Absperrschütz bei ehem. Grundwehr",
+      "lage": "Lohr km 1,320",
+      "beschreibung": "Absperrschütz bei ehem. Grundwehr",
+      "schadensfaelle": [
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        },
+        {
+          "problem": "Schieber lässt sich nicht bedienen",
+          "massnahme": "Drehrichtung kontrollieren; Schlosser holen; leichte Schläge mit dem Hammer auf Schiebergestänge"
+        },
+        {
+          "problem": "Schieber lässt sich nicht vollständig schließen",
+          "massnahme": "Schütz nochmals ein Stück öffnen, Freispülen lassen und erneut schließen"
+        }
+      ]
+    },
+    {
+      "nummer": 3,
+      "bezeichnung": "Absperrschieber DN 1800",
+      "lage": "Mutterbach, Überführungsbauwerk Nähe Parkplatz Augenklinik, Grundstück Weierich",
+      "beschreibung": "Absperrschieber DN1800 im Mutterbach mit aufgesetztem Schieber DN 300 (Nr.4)",
+      "schadensfaelle": [
+        {
+          "problem": "Schieber lässt sich nicht bedienen",
+          "massnahme": "Drehrichtung kontrollieren; Abflexen der Spindel (Schütz vorher sichern); Schütz kontrolliert ablassen (evtl. mit Hebezeug)"
+        },
+        {
+          "problem": "Undichtigkeit beim Betrieb",
+          "massnahme": "Schieber verkeilen; Abdichten mit Sandsäcken"
+        },
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        },
+        {
+          "problem": "Schieber lässt sich nicht vollständig schließen",
+          "massnahme": "Schütz nochmals ein Stück öffnen, Freispülen lassen und erneut schließen"
+        }
+      ]
+    },
+    {
+      "nummer": 4,
+      "bezeichnung": "Absperrschieber DN 300",
+      "lage": "Mutterbach, Überführungsbauwerk Nähe Parkplatz Augenklinik, Grundstück Weierich",
+      "beschreibung": "Absperrschieber DN 300 mit Festspindel (auf Absperrschieber DN 1800 gesetzt)",
+      "schadensfaelle": [
+        {
+          "problem": "Schieber lässt sich nicht bedienen",
+          "massnahme": "Drehrichtung kontrollieren; Schlosser holen; leichte Schläge mit dem Hammer auf Schiebergestänge"
+        },
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        }
+      ]
+    },
+    {
+      "nummer": 5,
+      "bezeichnung": "Einlauf",
+      "lage": "Mutterbach, am Parkplatz Augenklinik (Grundstück Weierich)",
+      "beschreibung": "Einlauf, Verrohrung mit Steinsatzsicherung",
+      "schadensfaelle": []
+    },
+    {
+      "nummer": 6,
+      "bezeichnung": "Absperrschieber DN 1000",
+      "lage": "nördlicher Straßendamm der B26 in Deichkrone",
+      "beschreibung": "Absperrschieber DN 1000 mit Festspindel mit Schachtabdeckung versehen",
+      "schadensfaelle": [
+        {
+          "problem": "festsitzender Deckel",
+          "massnahme": "mit Vorschlaghammer den Schacht freischlagen"
+        },
+        {
+          "problem": "Schieber lässt sich nicht bedienen",
+          "massnahme": "Abflexen der Spindel; Abdichten des Kanals mit Sandsäcken oder Kanalblase"
+        },
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        }
+      ]
+    },
+    {
+      "nummer": 7,
+      "bezeichnung": "Absperrschieber DN 500",
+      "lage": "nördlicher Straßendamm der B26 in Deichkrone",
+      "beschreibung": "Absperrschieber DN 500 mit Festspindel mit Schachtabdeckung versehen",
+      "schadensfaelle": [
+        {
+          "problem": "festsitzender Deckel",
+          "massnahme": "mit Vorschlaghammer den Schacht freischlagen"
+        },
+        {
+          "problem": "Schieber lässt sich nicht bedienen",
+          "massnahme": "Abflexen der Spindel; Abdichten des Kanals mit Sandsäcken oder Kanalblase"
+        },
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        }
+      ]
+    },
+    {
+      "nummer": 8,
+      "bezeichnung": "Absperrschieber DN 600 mit Rechen",
+      "lage": "linker Lohrdeich Lohr km 0,750 landseitig bei Autohaus Brass",
+      "beschreibung": "Absperrschieber DN 600",
+      "schadensfaelle": [
+        {
+          "problem": "Schieber lässt sich nicht bedienen",
+          "massnahme": "Drehrichtung kontrollieren; Schlosser holen; leichte Schläge mit dem Hammer auf Schiebergestänge"
+        },
+        {
+          "problem": "Bedienungsschlüssel geht verloren oder ist defekt",
+          "massnahme": "Ersatzschlüssel holen oder Schlosser holen"
+        }
+      ]
+    },
+    {
+      "nummer": 9,
+      "bezeichnung": "Pumpensumpf, Einsatz mobiler Pumpen",
+      "lage": "linker Lohrdeich Lohr km 0,750 landseitig bei Autohaus Brass",
+      "beschreibung": "Pumpensumpf, Einsatz mobiler Pumpen",
+      "schadensfaelle": []
+    },
+    {
+      "nummer": 10,
+      "bezeichnung": "Absperrschieber 1500/1250 Rexroth",
+      "lage": "rechter Lohrdeich Lohr km 0,70 Rexrothgelände Mündung Mutterbach in Lohr",
+      "beschreibung": "elektrisch und manuell betriebener Absperrschieber 1500/1250",
+      "schadensfaelle": [
+        {
+          "problem": "jeder Schadensfall",
+          "massnahme": "Firma Rexroth informieren, Schadensbeseitigung in Abstimmung mit Firma Rexroth"
+        }
+      ]
+    }
+  ]
+}
