@@ -764,6 +764,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Support Ticket routes
+  app.get("/api/support-tickets", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const tickets = await storage.getSupportTickets();
+      
+      // Filter tickets based on role
+      let filteredTickets = tickets;
+      if (user?.role === "user") {
+        // Users can only see their own tickets
+        filteredTickets = tickets.filter(ticket => ticket.createdBy === userId);
+      }
+      // Admins and managers can see all tickets
+      
+      res.json(filteredTickets);
+    } catch (error) {
+      console.error("Error fetching support tickets:", error);
+      res.status(500).json({ message: "Failed to fetch support tickets" });
+    }
+  });
+
+  app.post("/api/support-tickets", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { subject, description, priority = "medium" } = req.body;
+      
+      if (!subject || !description) {
+        return res.status(400).json({ message: "Subject and description are required" });
+      }
+      
+      const ticketData = {
+        subject,
+        description,
+        priority,
+        status: "open",
+        createdBy: userId,
+        emailHistory: []
+      };
+      
+      const ticket = await storage.createSupportTicket(ticketData);
+      
+      // Send email notification
+      const { emailService } = await import('./emailService');
+      try {
+        await emailService.sendSupportTicketEmail({
+          to: user.email || '',
+          subject: ticket.subject,
+          description: ticket.description || '',
+          ticketId: ticket.id,
+          priority: ticket.priority || 'medium'
+        });
+      } catch (emailError) {
+        console.error("Failed to send email, but ticket was created:", emailError);
+      }
+      
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Error creating support ticket:", error);
+      res.status(500).json({ message: "Failed to create support ticket" });
+    }
+  });
+
+  app.patch("/api/support-tickets/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const ticketId = parseInt(req.params.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get the ticket to check permissions
+      const tickets = await storage.getSupportTickets();
+      const ticket = tickets.find(t => t.id === ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      // Users can only update their own tickets, admins/managers can update all
+      if (user.role === "user" && ticket.createdBy !== userId) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const { status, assignedTo, updateMessage } = req.body;
+      
+      const updateData: any = {};
+      if (status) updateData.status = status;
+      if (assignedTo) updateData.assignedTo = assignedTo;
+      
+      const updatedTicket = await storage.updateSupportTicket(ticketId, updateData);
+      
+      // Send update email if status changed
+      if (status && updateMessage) {
+        const { emailService } = await import('./emailService');
+        try {
+          const ticketOwner = await storage.getUser(ticket.createdBy || '');
+          if (ticketOwner?.email) {
+            await emailService.sendTicketUpdateEmail({
+              to: ticketOwner.email,
+              ticketId: updatedTicket.id,
+              subject: updatedTicket.subject,
+              status: updatedTicket.status || 'open',
+              updateMessage,
+              assignedTo: updatedTicket.assignedTo || undefined
+            });
+          }
+        } catch (emailError) {
+          console.error("Failed to send update email:", emailError);
+        }
+      }
+      
+      res.json(updatedTicket);
+    } catch (error) {
+      console.error("Error updating support ticket:", error);
+      res.status(500).json({ message: "Failed to update support ticket" });
+    }
+  });
+
   // Admin routes (only for admin role)
   const isAdmin = async (req: any, res: any, next: any) => {
     if (!req.user?.claims?.sub) {
@@ -856,6 +984,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating backup:", error);
       res.status(500).json({ message: "Failed to create backup" });
+    }
+  });
+
+  // OpenAI AI Integration routes (EU AI Act konform)
+  app.post('/api/ai/generate-description', isAuthenticated, async (req: any, res) => {
+    try {
+      const { generateProjectDescription } = await import('./openai');
+      const userId = req.user.claims.sub;
+      const { name, location, budget, category } = req.body;
+
+      const result = await generateProjectDescription(userId, {
+        name,
+        location,
+        budget: budget ? parseFloat(budget) : undefined,
+        category,
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("AI description generation error:", error);
+      res.status(500).json({ 
+        error: "KI-Beschreibung konnte nicht generiert werden",
+        aiGenerated: false 
+      });
+    }
+  });
+
+  app.post('/api/ai/risk-assessment', isAuthenticated, async (req: any, res) => {
+    try {
+      const { generateRiskAssessment } = await import('./openai');
+      const userId = req.user.claims.sub;
+      const { name, location, budget, description, duration, projectId } = req.body;
+
+      const result = await generateRiskAssessment(userId, {
+        name,
+        location,
+        budget: budget ? parseFloat(budget) : undefined,
+        description,
+        duration: duration ? parseInt(duration) : undefined,
+      }, projectId);
+
+      res.json(result);
+    } catch (error) {
+      console.error("AI risk assessment error:", error);
+      res.status(500).json({ 
+        error: "Risikobewertung konnte nicht erstellt werden",
+        aiGenerated: false 
+      });
+    }
+  });
+
+  app.post('/api/ai/project-chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const { aiProjectChat } = await import('./openai');
+      const userId = req.user.claims.sub;
+      const { question, projectContext, projectId } = req.body;
+
+      const result = await aiProjectChat(userId, question, projectContext, projectId);
+
+      res.json(result);
+    } catch (error) {
+      console.error("AI project chat error:", error);
+      res.status(500).json({ 
+        error: "KI-Beratung ist momentan nicht verfügbar",
+        aiGenerated: false 
+      });
+    }
+  });
+
+  app.get('/api/ai/usage-stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const { getAIUsageStats } = await import('./openai');
+      const userId = req.user.claims.sub;
+
+      const stats = await getAIUsageStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("AI usage stats error:", error);
+      res.status(500).json({ 
+        error: "Statistiken konnten nicht geladen werden" 
+      });
     }
   });
 

@@ -9,6 +9,7 @@ import {
   audioRecords,
   photos,
   supportTickets,
+  aiLog,
   type User,
   type UpsertUser,
   type Project,
@@ -29,6 +30,8 @@ import {
   type InsertPhoto,
   type SupportTicket,
   type InsertSupportTicket,
+  type AILog,
+  type InsertAILog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -86,6 +89,16 @@ export interface IStorage {
   // Support ticket operations
   getSupportTickets(): Promise<SupportTicket[]>;
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicket(id: number, updateData: Partial<InsertSupportTicket>): Promise<SupportTicket>;
+  
+  // AI Log operations (EU AI Act Compliance)
+  createAILog(log: InsertAILog): Promise<AILog>;
+  getAIUsageStats(userId?: string): Promise<{
+    totalInteractions: number;
+    tokenUsage: number;
+    mostUsedActions: Array<{ action: string; count: number }>;
+    recentInteractions: Array<{ action: string; timestamp: Date; projectId?: number }>;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -277,6 +290,15 @@ export class DatabaseStorage implements IStorage {
     return newTicket;
   }
 
+  async updateSupportTicket(id: number, updateData: Partial<InsertSupportTicket>): Promise<SupportTicket> {
+    const [updatedTicket] = await db
+      .update(supportTickets)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updatedTicket;
+  }
+
   // Admin-specific methods
   async getAllUsers(): Promise<User[]> {
     const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
@@ -361,6 +383,79 @@ export class DatabaseStorage implements IStorage {
 -- INSERT INTO users VALUES (...);
 
 SELECT 'Backup completed successfully' as status;`;
+  }
+
+  // AI Log operations (EU AI Act Compliance)
+  async createAILog(log: InsertAILog): Promise<AILog> {
+    const [aiLogEntry] = await db
+      .insert(aiLog)
+      .values(log)
+      .returning();
+    return aiLogEntry;
+  }
+
+  async getAIUsageStats(userId?: string): Promise<{
+    totalInteractions: number;
+    tokenUsage: number;
+    mostUsedActions: Array<{ action: string; count: number }>;
+    recentInteractions: Array<{ action: string; timestamp: Date; projectId?: number }>;
+  }> {
+    try {
+      // Get total interactions and token usage
+      const statsQuery = userId
+        ? db.select().from(aiLog).where(eq(aiLog.userId, userId))
+        : db.select().from(aiLog);
+
+      const allLogs = await statsQuery;
+
+      const totalInteractions = allLogs.length;
+      const tokenUsage = allLogs.reduce((sum, log) => sum + (log.tokensUsed || 0), 0);
+
+      // Get most used actions
+      const actionCounts = allLogs.reduce((acc, log) => {
+        acc[log.action] = (acc[log.action] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const mostUsedActions = Object.entries(actionCounts)
+        .map(([action, count]) => ({ action, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // Get recent interactions (last 10)
+      const recentQuery = userId
+        ? db.select({
+            action: aiLog.action,
+            timestamp: aiLog.createdAt,
+            projectId: aiLog.projectId,
+          }).from(aiLog).where(eq(aiLog.userId, userId)).orderBy(desc(aiLog.createdAt)).limit(10)
+        : db.select({
+            action: aiLog.action,
+            timestamp: aiLog.createdAt,
+            projectId: aiLog.projectId,
+          }).from(aiLog).orderBy(desc(aiLog.createdAt)).limit(10);
+
+      const recentInteractions = await recentQuery;
+
+      return {
+        totalInteractions,
+        tokenUsage,
+        mostUsedActions,
+        recentInteractions: recentInteractions.map(r => ({
+          action: r.action,
+          timestamp: r.timestamp!,
+          projectId: r.projectId || undefined,
+        })),
+      };
+    } catch (error) {
+      console.error("Error getting AI usage stats:", error);
+      return {
+        totalInteractions: 0,
+        tokenUsage: 0,
+        mostUsedActions: [],
+        recentInteractions: [],
+      };
+    }
   }
 }
 

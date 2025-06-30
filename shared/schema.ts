@@ -221,13 +221,13 @@ export const loginLog = pgTable("login_log", {
 // AI log table
 export const aiLog = pgTable("ai_log", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id),
+  userId: varchar("user_id").references(() => users.id).notNull(),
   action: varchar("action", { length: 100 }).notNull(),
-  inputData: jsonb("input_data"),
-  outputData: jsonb("output_data"),
-  model: varchar("model", { length: 100 }),
-  tokensUsed: integer("tokens_used"),
-  processingTime: integer("processing_time"),
+  prompt: text("prompt").notNull(),
+  response: text("response").notNull(),
+  model: varchar("model", { length: 100 }).notNull(),
+  tokensUsed: integer("tokens_used").notNull(),
+  projectId: integer("project_id").references(() => projects.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -356,6 +356,11 @@ export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit
   updatedAt: true,
 });
 
+export const insertAILogSchema = createInsertSchema(aiLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -387,3 +392,6 @@ export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+export type AILog = typeof aiLog.$inferSelect;
+export type InsertAILog = z.infer<typeof insertAILogSchema>;
