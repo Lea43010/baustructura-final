@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Home, FolderOpen, Map, FileText, User } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Home, FolderOpen, Map, FileText, User, MessageCircle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 export function MobileNav() {
@@ -9,7 +9,7 @@ export function MobileNav() {
     { href: "/", icon: <Home className="h-5 w-5" />, label: "Start" },
     { href: "/projects", icon: <FolderOpen className="h-5 w-5" />, label: "Projekte" },
     { href: "/maps", icon: <Map className="h-5 w-5" />, label: "Karte" },
-    { href: "/documents", icon: <FileText className="h-5 w-5" />, label: "Dokumente" },
+    { href: "/support", icon: <MessageCircle className="h-5 w-5" />, label: "Support" },
     { href: "/profile", icon: <User className="h-5 w-5" />, label: "Profil" },
   ];
 
