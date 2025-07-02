@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Network } from "lucide-react";
 
 export default function Auth() {
@@ -15,8 +15,20 @@ export default function Auth() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-            <Network className="h-8 w-8 text-green-500" />
+          <div className="w-16 h-16 bg-white rounded-full overflow-hidden mx-auto mb-4 p-1">
+            <img 
+              src="/logo.png" 
+              alt="Sachverständigenbüro Logo" 
+              className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                console.log('Auth Logo loading failed, using fallback');
+                (e.target as HTMLImageElement).style.display = 'none';
+                const parent = (e.target as HTMLImageElement).parentElement;
+                if (parent) {
+                  parent.innerHTML = '<div class="w-full h-full rounded-full bg-green-500 flex items-center justify-center text-white font-bold">BS</div>';
+                }
+              }}
+            />
           </div>
           <h1 className="text-2xl font-bold text-white">Bau-Structura</h1>
           <p className="text-gray-100">Tiefbau Projektmanagement</p>

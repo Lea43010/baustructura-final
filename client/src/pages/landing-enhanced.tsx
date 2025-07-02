@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { 
   MapPin, 
   Camera, 
@@ -198,6 +198,37 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Navigation Header */}
+      <nav className="bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white rounded-full overflow-hidden p-1">
+                <img 
+                  src="/logo.png" 
+                  alt="Sachverständigenbüro Logo" 
+                  className="w-full h-full object-cover rounded-full"
+                  onError={(e) => {
+                    console.log('Landing Logo loading failed, using fallback');
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    const parent = (e.target as HTMLImageElement).parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<div class="w-full h-full rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-xs">BS</div>';
+                    }
+                  }}
+                />
+              </div>
+              <span className="text-white font-semibold text-lg">Bau-Structura</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" className="text-white hover:bg-white/20">
+                Anmelden
+              </Button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-green-600 to-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-4 py-20">

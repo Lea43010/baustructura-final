@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 
 interface SystemStats {
   activeUsers: number;
@@ -19,9 +19,9 @@ interface SystemStats {
   professionalLicenses: number;
   enterpriseLicenses: number;
 }
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../hooks/use-toast";
 import { 
   Users, 
   Database, 

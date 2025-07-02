@@ -1,14 +1,15 @@
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
+import { usePerformanceMonitor, useMemoryMonitor } from "../hooks/usePerformanceMonitor";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ProjectCard } from "@/components/project/project-card";
-import { ProjectStats } from "@/components/project/project-stats";
-import { PageHeader } from "@/components/layout/page-header";
-import { MobileNav } from "@/components/layout/mobile-nav";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Progress } from "../components/ui/progress";
+import { ProjectCard } from "../components/project/project-card";
+import { ProjectStats } from "../components/project/project-stats";
+import { PageHeader } from "../components/layout/page-header";
+import { MobileNav } from "../components/layout/mobile-nav";
 import { 
   FolderOpen, 
   AlertCircle, 
@@ -23,10 +24,14 @@ import {
   Mic
 } from "lucide-react";
 import { Link } from "wouter";
-import type { Project } from "@shared/schema";
+import type { Project } from "../shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  
+  // Performance monitoring
+  usePerformanceMonitor('Dashboard');
+  useMemoryMonitor();
   const [, setLocation] = useLocation();
   
   const { data: projects = [], isLoading } = useQuery<Project[]>({
@@ -55,8 +60,20 @@ export default function Dashboard() {
       <PageHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-              <Network className="h-4 w-4 text-white" />
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white p-0.5">
+              <img 
+                src="/logo.png" 
+                alt="Sachverständigenbüro Logo" 
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  console.log('Logo loading failed, using fallback');
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-full h-full rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">BS</div>';
+                  }
+                }}
+              />
             </div>
             <div>
               <h1 className="font-semibold text-gray-900">Bau-Structura</h1>
@@ -132,7 +149,7 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Schnellzugriff</h2>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <Link href="/camera">
               <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-0">
@@ -145,17 +162,7 @@ export default function Dashboard() {
               </Card>
             </Link>
             
-            <Link href="/maps">
-              <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-0">
-                  <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <MapPin className="h-5 w-5 text-white" />
-                  </div>
-                  <p className="font-medium text-gray-900 text-sm">Karte öffnen</p>
-                  <p className="text-xs text-gray-600">Standorte anzeigen</p>
-                </CardContent>
-              </Card>
-            </Link>
+
 
             <Link href="/flood-protection">
               <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
@@ -181,17 +188,18 @@ export default function Dashboard() {
               </Card>
             </Link>
 
-            <Link href="/documents">
+            <Link href="/ai-assistant">
               <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-0">
-                  <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <FileText className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <span className="text-white font-bold text-lg">✨</span>
                   </div>
-                  <p className="font-medium text-gray-900 text-sm">Dokumente</p>
-                  <p className="text-xs text-gray-600">Upload & Verwaltung</p>
+                  <p className="font-medium text-gray-900 text-sm">KI-Assistent</p>
+                  <p className="text-xs text-gray-600">Intelligente Hilfe</p>
                 </CardContent>
               </Card>
             </Link>
+
 
 
           </div>
