@@ -60,11 +60,19 @@ export default function Dashboard() {
       <PageHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white p-0.5">
               <img 
-                src="/attached_assets/logo-sachverstaendigenbüro.png" 
+                src="/logo.png" 
                 alt="Sachverständigenbüro Logo" 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  console.log('Logo loading failed, using fallback');
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-full h-full rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">BS</div>';
+                  }
+                }}
               />
             </div>
             <div>

@@ -17,9 +17,17 @@ export default function Auth() {
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-white rounded-full overflow-hidden mx-auto mb-4 p-1">
             <img 
-              src="/attached_assets/logo-sachverstaendigenbüro.png" 
+              src="/logo.png" 
               alt="Sachverständigenbüro Logo" 
               className="w-full h-full object-cover rounded-full"
+              onError={(e) => {
+                console.log('Auth Logo loading failed, using fallback');
+                (e.target as HTMLImageElement).style.display = 'none';
+                const parent = (e.target as HTMLImageElement).parentElement;
+                if (parent) {
+                  parent.innerHTML = '<div class="w-full h-full rounded-full bg-green-500 flex items-center justify-center text-white font-bold">BS</div>';
+                }
+              }}
             />
           </div>
           <h1 className="text-2xl font-bold text-white">Bau-Structura</h1>

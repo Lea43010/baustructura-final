@@ -11,6 +11,7 @@ import {
   MoreVertical, 
   Camera, 
   Mic, 
+  FileText,
   MapPin, 
   Calendar,
   Euro,
@@ -163,26 +164,39 @@ export default function ProjectDetails() {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <Link href="/camera">
-            <Card className="p-4 text-center hover:shadow-md transition-shadow cursor-pointer">
+            <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-0">
-                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                  <Camera className="h-6 w-6 text-white" />
+                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <Camera className="h-5 w-5 text-white" />
                 </div>
-                <p className="font-medium text-gray-900 text-sm">Foto hinzufügen</p>
+                <p className="font-medium text-gray-900 text-xs">Foto hinzufügen</p>
               </CardContent>
             </Card>
           </Link>
           
-          <Card className="p-4 text-center hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-0">
-              <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <Mic className="h-6 w-6 text-white" />
-              </div>
-              <p className="font-medium text-gray-900 text-sm">Audio-Notiz</p>
-            </CardContent>
-          </Card>
+          <Link href="/audio-recorder">
+            <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-0">
+                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <Mic className="h-5 w-5 text-white" />
+                </div>
+                <p className="font-medium text-gray-900 text-xs">Audio-Notiz</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/documents">
+            <Card className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-0">
+                <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <p className="font-medium text-gray-900 text-xs">Dokumente</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Recent Activity */}
@@ -217,7 +231,7 @@ export default function ProjectDetails() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Standort</h3>
-                <Link href="/maps">
+                <Link href={`/maps?address=${encodeURIComponent(project.address || `${project.name} - Projektstandort`)}&lat=${project.latitude}&lng=${project.longitude}`}>
                   <Button variant="link" className="text-green-600 text-sm font-medium p-0">
                     Karte öffnen
                   </Button>
