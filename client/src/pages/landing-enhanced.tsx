@@ -590,9 +590,16 @@ export default function Landing() {
 
                   <Button 
                     className={`w-full ${plan.buttonColor} text-white`}
-                    onClick={() => window.location.href = '/api/login'}
+                    onClick={() => {
+                      if (plan.name === 'Enterprise') {
+                        window.location.href = '/api/login';
+                      } else {
+                        const licenseType = plan.name.toLowerCase() === 'basic' ? 'basic' : 'professional';
+                        window.location.href = `/checkout?license=${licenseType}`;
+                      }
+                    }}
                   >
-                    {plan.name === 'Enterprise' ? 'Kontakt aufnehmen' : 'Jetzt starten'}
+                    {plan.name === 'Enterprise' ? 'Kontakt aufnehmen' : 'Jetzt kaufen'}
                   </Button>
                 </CardContent>
               </Card>

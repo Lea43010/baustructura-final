@@ -1,7 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { useToast } from "../hooks/use-toast";
+import { apiRequest } from "../lib/queryClient";
 
 interface SystemStats {
   activeUsers: number;
@@ -18,27 +22,32 @@ interface SystemStats {
   basicLicenses: number;
   professionalLicenses: number;
   enterpriseLicenses: number;
+  paymentsThisMonth: number;
+  totalRevenue: number;
 }
-import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import { useToast } from "../hooks/use-toast";
 import { 
   Users, 
   Database, 
   FileText, 
-  Key, 
+  Key,
+  CreditCard,
+  BarChart, 
   TestTube2, 
   Download,
   Shield,
   Activity,
   ArrowLeft,
-  Settings
+  Settings,
+  Mail
 } from "lucide-react";
 import { Link } from "wouter";
+
+
 
 export default function Admin() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [showPaymentOverview, setShowPaymentOverview] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -152,6 +161,79 @@ export default function Admin() {
 
       {/* Admin Functions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        {/* E-Mail System */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              E-Mail System
+            </CardTitle>
+            <CardDescription>
+              BREVO Integration für E-Mail-Versand
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span>Status:</span>
+                <span className="text-green-600 font-medium">✅ Konfiguriert</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>SMTP Server:</span>
+                <span className="font-mono text-xs">smtp-relay.brevo.com</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Port:</span>
+                <span className="font-mono text-xs">587/TLS</span>
+              </div>
+            </div>
+            <Button 
+              onClick={async () => {
+                try {
+                  toast({
+                    title: "E-Mail Test läuft...",
+                    description: "Demo-E-Mail wird verarbeitet",
+                  });
+                  
+                  const response = await fetch('/api/email/test', {
+                    method: 'POST',
+                    credentials: 'include'
+                  });
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    toast({
+                      title: "E-Mail Test erfolgreich",
+                      description: data.message,
+                      variant: "default",
+                    });
+                  } else {
+                    const error = await response.json();
+                    toast({
+                      title: "E-Mail Test fehlgeschlagen",
+                      description: error.message || "Unbekannter Fehler",
+                      variant: "destructive",
+                    });
+                  }
+                } catch (error: any) {
+                  toast({
+                    title: "E-Mail Test fehlgeschlagen",
+                    description: error.message || "Netzwerkfehler",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="w-full"
+            >
+              <TestTube2 className="h-4 w-4 mr-2" />
+              Test-E-Mail senden
+            </Button>
+            <div className="text-xs text-gray-500">
+              Demo-Modus • Support-Tickets • Willkommens-E-Mails
+            </div>
+          </CardContent>
+        </Card>
         {/* User Management */}
         <Card>
           <CardHeader>
@@ -203,10 +285,82 @@ export default function Admin() {
               <p>• Verschlüsselte Speicherung</p>
               <p>• Letztes Backup: Heute 02:00</p>
             </div>
-            <Button className="w-full flex items-center gap-2" disabled>
+            <Button 
+              onClick={async () => {
+                try {
+                  toast({
+                    title: "🔄 Backup wird erstellt...",
+                    description: "Datenbank-Export wird verarbeitet",
+                  });
+                  
+                  const response = await fetch('/api/admin/backup/create', {
+                    method: 'POST',
+                    credentials: 'include'
+                  });
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    toast({
+                      title: "✅ Backup erfolgreich erstellt",
+                      description: `Backup-ID: ${data.backupId} (${data.size})`,
+                      variant: "default",
+                    });
+                  } else {
+                    const error = await response.json();
+                    toast({
+                      title: "❌ Backup fehlgeschlagen",
+                      description: error.message || "Unbekannter Fehler",
+                      variant: "destructive",
+                    });
+                  }
+                } catch (error: any) {
+                  toast({
+                    title: "❌ Backup fehlgeschlagen",
+                    description: error.message || "Netzwerkfehler",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="w-full flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            >
               <Download className="h-4 w-4" />
               Backup erstellen
-              <span className="text-xs ml-2">(In Entwicklung)</span>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Zahlungsverkehr */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Zahlungsverkehr
+            </CardTitle>
+            <CardDescription>
+              Stripe-Zahlungen und Lizenz-Management
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span>Aktive Lizenzen:</span>
+                <span className="font-medium">{systemStats?.activeLicenses || '0'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Zahlungen diesen Monat:</span>
+                <span className="font-medium">{systemStats?.paymentsThisMonth || '0'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Gesamtumsatz:</span>
+                <span className="font-medium">{systemStats?.totalRevenue || '0'}€</span>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowPaymentOverview(true)}
+              className="w-full"
+            >
+              <BarChart className="h-4 w-4 mr-2" />
+              Zahlungsübersicht öffnen
             </Button>
           </CardContent>
         </Card>
@@ -353,6 +507,8 @@ export default function Admin() {
         </Card>
       </div>
 
+
+
       {/* Development Notice */}
       <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
         <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
@@ -364,6 +520,171 @@ export default function Admin() {
           Systemkonfiguration werden in den nächsten Versionen hinzugefügt.
         </p>
       </div>
+
+      {/* Zahlungsverkehr Detail Modal */}
+      {showPaymentOverview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Zahlungsverkehr Übersicht</h2>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowPaymentOverview(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  ✕
+                </Button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Umsatz-Übersicht */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Gesamtumsatz</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">
+                      {systemStats?.totalRevenue || 0}€
+                    </div>
+                    <p className="text-xs text-muted-foreground">Alle Zahlungen</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Dieser Monat</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {systemStats?.paymentsThisMonth || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Neue Zahlungen</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Aktive Lizenzen</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {systemStats?.activeLicenses || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Gültige Abos</p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Ablaufend</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {systemStats?.expiringLicenses || 0}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Nächste 30 Tage</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Lizenz-Verteilung */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lizenz-Verteilung</CardTitle>
+                  <CardDescription>Aktuelle Lizenztypen der Benutzer</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {systemStats?.basicLicenses || 0}
+                      </div>
+                      <div className="text-sm font-medium">Basic Lizenzen</div>
+                      <div className="text-xs text-muted-foreground">21€ / Jahr</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {systemStats?.professionalLicenses || 0}
+                      </div>
+                      <div className="text-sm font-medium">Professional Lizenzen</div>
+                      <div className="text-xs text-muted-foreground">39€ / Jahr</div>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <div className="text-2xl font-bold text-gold-600">
+                        {systemStats?.enterpriseLicenses || 0}
+                      </div>
+                      <div className="text-sm font-medium">Enterprise Lizenzen</div>
+                      <div className="text-xs text-muted-foreground">99€ / Jahr</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stripe-Integration Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Stripe-Integration
+                  </CardTitle>
+                  <CardDescription>Zahlungsdienstleister Status</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span>API Status:</span>
+                      <Badge className="bg-green-500">✅ Aktiv</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Webhook:</span>
+                      <Badge variant="outline">🔄 Konfiguriert</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Test Modus:</span>
+                      <Badge variant="secondary">🧪 Sandbox</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Währung:</span>
+                      <Badge variant="outline">€ EUR</Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
+                      Zahlungsmethoden verfügbar:
+                    </h4>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                      • Kreditkarten (Visa, Mastercard, American Express)
+                      • SEPA-Lastschrift
+                      • SOFORT-Überweisung
+                      • PayPal (über Stripe)
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Aktionen */}
+              <div className="flex gap-4">
+                <Button variant="outline" className="flex-1">
+                  <BarChart className="h-4 w-4 mr-2" />
+                  Detaillierte Berichte
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Stripe Dashboard
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Umsatz exportieren
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

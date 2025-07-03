@@ -4,9 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "./components/ui/toaster";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { ErrorBoundary } from "./components/error-boundary";
-import { useAuth } from "./hooks/useAuth";
 import { lazy, Suspense } from "react";
 import { Card, CardContent } from "./components/ui/card";
+
 // Lazy load heavy components for better bundle splitting
 const Landing = lazy(() => import("./pages/landing-enhanced"));
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -20,12 +20,11 @@ const AIAssistantPage = lazy(() => import("./pages/ai-assistant"));
 const Profile = lazy(() => import("./pages/profile"));
 const Customers = lazy(() => import("./pages/customers"));
 const FloodProtection = lazy(() => import("./pages/flood-protection"));
+const HochwasserAnleitung = lazy(() => import("./pages/hochwasser-anleitung"));
 const ChecklistDetail = lazy(() => import("./pages/checklist-detail"));
 const Admin = lazy(() => import("./pages/admin"));
 const SftpManager = lazy(() => import("./pages/sftp-manager"));
 const Support = lazy(() => import("./pages/support"));
-const Checkout = lazy(() => import("./pages/checkout"));
-const PaymentSuccess = lazy(() => import("./pages/payment-success"));
 
 // Keep lightweight components as regular imports
 import NotFound from "./pages/not-found";
@@ -44,45 +43,19 @@ const PageLoader = () => (
   </div>
 );
 
-function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Lade Anwendung...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Switch>
-        <Route path="/">
-          {() => (
-            <Suspense fallback={<PageLoader />}>
-              <Landing />
-            </Suspense>
-          )}
-        </Route>
-        <Route path="/auth" component={Auth} />
-        <Route>
-          {() => (
-            <Suspense fallback={<PageLoader />}>
-              <Landing />
-            </Suspense>
-          )}
-        </Route>
-      </Switch>
-    );
-  }
-
+function RouterWithAuth() {
+  // Simplified router without auth hooks for now
   return (
     <Switch>
       <Route path="/">
+        {() => (
+          <Suspense fallback={<PageLoader />}>
+            <Landing />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/auth" component={Auth} />
+      <Route path="/dashboard">
         {() => (
           <Suspense fallback={<PageLoader />}>
             <Dashboard />
@@ -97,9 +70,9 @@ function Router() {
         )}
       </Route>
       <Route path="/projects/:id">
-        {() => (
+        {(params) => (
           <Suspense fallback={<PageLoader />}>
-            <ProjectDetails />
+            <ProjectDetails params={params} />
           </Suspense>
         )}
       </Route>
@@ -117,7 +90,7 @@ function Router() {
           </Suspense>
         )}
       </Route>
-      <Route path="/audio">
+      <Route path="/audio-recorder">
         {() => (
           <Suspense fallback={<PageLoader />}>
             <AudioRecorder />
@@ -152,13 +125,6 @@ function Router() {
           </Suspense>
         )}
       </Route>
-      <Route path="/flood-protection/checklist/:id">
-        {() => (
-          <Suspense fallback={<PageLoader />}>
-            <ChecklistDetail />
-          </Suspense>
-        )}
-      </Route>
       <Route path="/flood-protection">
         {() => (
           <Suspense fallback={<PageLoader />}>
@@ -166,10 +132,17 @@ function Router() {
           </Suspense>
         )}
       </Route>
-      <Route path="/sftp">
+      <Route path="/hochwasser-anleitung">
         {() => (
           <Suspense fallback={<PageLoader />}>
-            <SftpManager />
+            <HochwasserAnleitung />
+          </Suspense>
+        )}
+      </Route>
+      <Route path="/flood-protection/checklist/:id">
+        {(params) => (
+          <Suspense fallback={<PageLoader />}>
+            <ChecklistDetail params={params} />
           </Suspense>
         )}
       </Route>
@@ -180,24 +153,17 @@ function Router() {
           </Suspense>
         )}
       </Route>
+      <Route path="/sftp-manager">
+        {() => (
+          <Suspense fallback={<PageLoader />}>
+            <SftpManager />
+          </Suspense>
+        )}
+      </Route>
       <Route path="/support">
         {() => (
           <Suspense fallback={<PageLoader />}>
             <Support />
-          </Suspense>
-        )}
-      </Route>
-      <Route path="/checkout">
-        {() => (
-          <Suspense fallback={<PageLoader />}>
-            <Checkout />
-          </Suspense>
-        )}
-      </Route>
-      <Route path="/payment-success">
-        {() => (
-          <Suspense fallback={<PageLoader />}>
-            <PaymentSuccess />
           </Suspense>
         )}
       </Route>
@@ -212,7 +178,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <RouterWithAuth />
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>

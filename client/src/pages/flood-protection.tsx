@@ -347,20 +347,30 @@ export default function FloodProtection() {
   return (
     <div className="min-h-screen bg-gray-50">
       <PageHeader>
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation("/")}
-            className="flex items-center"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Zurück zum Dashboard
-          </Button>
-          <div className="flex items-center space-x-2">
-            <Shield className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">Hochwasserschutz</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/")}
+              className="flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Zurück zum Dashboard
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Shield className="h-6 w-6 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Hochwasserschutz</h1>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setLocation("/hochwasser-anleitung")}
+            className="flex items-center space-x-2"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Wartungsanleitung</span>
+          </Button>
         </div>
       </PageHeader>
 

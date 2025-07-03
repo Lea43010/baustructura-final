@@ -20,12 +20,11 @@ const AIAssistantPage = lazy(() => import("./pages/ai-assistant"));
 const Profile = lazy(() => import("./pages/profile"));
 const Customers = lazy(() => import("./pages/customers"));
 const FloodProtection = lazy(() => import("./pages/flood-protection"));
+const HochwasserAnleitung = lazy(() => import("./pages/hochwasser-anleitung"));
 const ChecklistDetail = lazy(() => import("./pages/checklist-detail"));
 const Admin = lazy(() => import("./pages/admin"));
 const SftpManager = lazy(() => import("./pages/sftp-manager"));
 const Support = lazy(() => import("./pages/support"));
-const Checkout = lazy(() => import("./pages/checkout"));
-const PaymentSuccess = lazy(() => import("./pages/payment-success"));
 
 // Keep lightweight components as regular imports
 import NotFound from "./pages/not-found";
@@ -159,6 +158,13 @@ function Router() {
           </Suspense>
         )}
       </Route>
+      <Route path="/hochwasser-anleitung">
+        {() => (
+          <Suspense fallback={<PageLoader />}>
+            <HochwasserAnleitung />
+          </Suspense>
+        )}
+      </Route>
       <Route path="/flood-protection">
         {() => (
           <Suspense fallback={<PageLoader />}>
@@ -187,22 +193,17 @@ function Router() {
           </Suspense>
         )}
       </Route>
-      <Route path="/checkout">
-        {() => (
-          <Suspense fallback={<PageLoader />}>
-            <Checkout />
-          </Suspense>
-        )}
-      </Route>
-      <Route path="/payment-success">
-        {() => (
-          <Suspense fallback={<PageLoader />}>
-            <PaymentSuccess />
-          </Suspense>
-        )}
-      </Route>
       <Route component={NotFound} />
     </Switch>
+  );
+}
+
+function AppContent() {
+  return (
+    <>
+      <Toaster />
+      <Router />
+    </>
   );
 }
 
@@ -211,8 +212,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <AppContent />
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>

@@ -16,7 +16,7 @@ import { Link, useLocation } from "wouter";
 import { Wrapper, Status } from "@googlemaps/react-wrapper";
 import { DirectAddressSearch } from "../components/maps/direct-address-search";
 import { apiRequest, queryClient } from "../lib/queryClient";
-import type { Project } from "../shared/schema";
+import type { Project } from "@shared/schema";
 
 // Erweiterte Marker-Typen für Bauprojekte
 interface CustomMarker {
@@ -49,17 +49,17 @@ interface EnhancedMapProps {
   onProjectSelect: (project: Project) => void;
   markers: CustomMarker[];
   measurements: Measurement[];
-  onMarkerAdd: (marker: Omit<CustomMarker, 'id' | 'createdAt'>) => void;
-  onMeasurementAdd: (measurement: Omit<Measurement, 'id'>) => void;
+  onMarkerAdd: (marker: CustomMarker) => void;
+  onMeasurementAdd: (measurement: Measurement) => void;
   searchLocation: { lat: number; lng: number; address: string } | null;
-  drawingMode: string;
-  onDrawingModeChange: (mode: string) => void;
+  drawingMode: string | null;
+  onDrawingModeChange: (mode: string | null) => void;
 }
 
-function EnhancedGoogleMap({ 
-  projects, 
-  selectedProject, 
-  onProjectSelect, 
+function EnhancedGoogleMap({
+  projects,
+  selectedProject,
+  onProjectSelect,
   markers,
   measurements,
   onMarkerAdd,
@@ -68,434 +68,329 @@ function EnhancedGoogleMap({
   drawingMode,
   onDrawingModeChange
 }: EnhancedMapProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<any>(null);
-  const [googleMarkers, setGoogleMarkers] = useState<any[]>([]);
-  const [searchMarker, setSearchMarker] = useState<any>(null);
-  const [measurementPath, setMeasurementPath] = useState<any[]>([]);
-  const [drawingManager, setDrawingManager] = useState<any>(null);
+  const mapRef = useRef<google.maps.Map>();
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [drawingManager, setDrawingManager] = useState<google.maps.drawing.DrawingManager | null>(null);
 
-  // Initialisiere die Karte mit erweiterten Optionen
-  useEffect(() => {
-    if (mapRef.current && !map && (window as any).google?.maps) {
-      const newMap = new (window as any).google.maps.Map(mapRef.current, {
-        center: { lat: 48.1351, lng: 11.5820 }, // München
-        zoom: 12,
-        mapTypeControl: true,
-        mapTypeControlOptions: {
-          style: (window as any).google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-          position: (window as any).google.maps.ControlPosition.TOP_RIGHT
-        },
-        streetViewControl: true,
-        streetViewControlOptions: {
-          position: (window as any).google.maps.ControlPosition.RIGHT_TOP
-        },
-        fullscreenControl: true,
-        fullscreenControlOptions: {
-          position: (window as any).google.maps.ControlPosition.RIGHT_TOP
-        },
-        zoomControl: true,
-        zoomControlOptions: {
-          position: (window as any).google.maps.ControlPosition.RIGHT_CENTER
-        },
-        mapTypeId: 'roadmap', // Straßenansicht für bessere Übersicht
-        gestureHandling: 'greedy',
-        styles: []
-      });
+  // Map-Initialisierung
+  const initMap = (map: google.maps.Map) => {
+    mapRef.current = map;
+    setIsLoaded(true);
 
-      // Drawing Manager für Messungen und Markierungen
-      const drawingMgr = new (window as any).google.maps.drawing.DrawingManager({
-        drawingMode: null,
-        drawingControl: false,
-        polygonOptions: {
-          fillColor: '#ff0000',
-          fillOpacity: 0.3,
-          strokeWeight: 2,
-          clickable: false,
-          editable: true,
-          draggable: true
-        },
-        polylineOptions: {
-          strokeColor: '#ff0000',
-          strokeWeight: 3,
-          clickable: false,
-          editable: true,
-          draggable: true
+    // Drawing Manager für Messungen initialisieren
+    const manager = new google.maps.drawing.DrawingManager({
+      drawingMode: null,
+      drawingControl: false,
+      polygonOptions: {
+        fillColor: '#FF0000',
+        fillOpacity: 0.35,
+        strokeWeight: 2,
+        clickable: false,
+        editable: true,
+        zIndex: 1
+      },
+      polylineOptions: {
+        strokeColor: '#FF0000',
+        strokeWeight: 3,
+        clickable: false,
+        editable: true,
+        zIndex: 1
+      }
+    });
+
+    manager.setMap(map);
+    setDrawingManager(manager);
+
+    // Event-Listener für gezeichnete Elemente
+    google.maps.event.addListener(manager, 'overlaycomplete', (event: any) => {
+      const overlay = event.overlay;
+      const type = event.type;
+
+      if (type === 'polyline') {
+        const path = overlay.getPath();
+        const points = path.getArray().map((point: google.maps.LatLng) => ({
+          lat: point.lat(),
+          lng: point.lng()
+        }));
+
+        let distance = 0;
+        for (let i = 0; i < points.length - 1; i++) {
+          distance += google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(points[i].lat, points[i].lng),
+            new google.maps.LatLng(points[i + 1].lat, points[i + 1].lng)
+          );
         }
-      });
-      
-      drawingMgr.setMap(newMap);
-      setDrawingManager(drawingMgr);
 
-      // Event Listener für Drawing Manager
-      (window as any).google.maps.event.addListener(drawingMgr, 'polylinecomplete', (polyline: any) => {
-        const path = polyline.getPath();
-        const distance = (window as any).google.maps.geometry.spherical.computeLength(path);
-        const points = [];
-        for (let i = 0; i < path.getLength(); i++) {
-          const point = path.getAt(i);
-          points.push({ lat: point.lat(), lng: point.lng() });
-        }
-        
-        onMeasurementAdd({
+        const measurement: Measurement = {
+          id: Date.now().toString(),
           points,
           distance: Math.round(distance),
           type: 'line',
           title: `Distanz ${Math.round(distance)}m`,
-          unit: distance > 1000 ? 'kilometers' : 'meters'
-        });
-        
-        polyline.setMap(null); // Temporäre Linie entfernen
-        drawingMgr.setDrawingMode(null);
-        onDrawingModeChange('');
-      });
+          unit: 'meters'
+        };
 
-      // Event Listener für Polygon (Flächenmessung)
-      (window as any).google.maps.event.addListener(drawingMgr, 'polygoncomplete', (polygon: any) => {
-        const path = polygon.getPath();
-        const area = (window as any).google.maps.geometry.spherical.computeArea(path);
-        const points = [];
-        for (let i = 0; i < path.getLength(); i++) {
-          const point = path.getAt(i);
-          points.push({ lat: point.lat(), lng: point.lng() });
-        }
-        
-        onMeasurementAdd({
+        onMeasurementAdd(measurement);
+      }
+
+      if (type === 'polygon') {
+        const path = overlay.getPath();
+        const points = path.getArray().map((point: google.maps.LatLng) => ({
+          lat: point.lat(),
+          lng: point.lng()
+        }));
+
+        const area = google.maps.geometry.spherical.computeArea(path);
+
+        const measurement: Measurement = {
+          id: Date.now().toString(),
           points,
           distance: Math.round(area),
           type: 'area',
           title: `Fläche ${Math.round(area)}m²`,
           unit: 'meters'
-        });
-        
-        polygon.setMap(null);
-        drawingMgr.setDrawingMode(null);
-        onDrawingModeChange('');
-      });
+        };
 
-      // Click Event für Marker-Platzierung
-      newMap.addListener('click', (event: any) => {
-        console.log('Map clicked, drawingMode:', drawingMode);
-        
-        if (drawingMode === 'marker') {
-          const lat = event.latLng.lat();
-          const lng = event.latLng.lng();
-          
-          console.log('Creating marker at:', lat, lng);
-          
-          // Sofort Marker hinzufügen ohne Geocoding-Verzögerung
-          const markerData = {
-            lat: Number(lat),
-            lng: Number(lng),
-            title: `Marker ${new Date().toLocaleTimeString('de-DE')}`,
-            description: `Position: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-            type: 'marker' as const,
-            projectId: selectedProject?.id,
-            color: '#dc2626',
-            icon: '📍'
-          };
-          
-          console.log('Adding marker:', markerData);
-          onMarkerAdd(markerData);
-          onDrawingModeChange('');
-        }
-      });
+        onMeasurementAdd(measurement);
+      }
 
-      setMap(newMap);
-    }
-  }, [mapRef.current, drawingMode]);
+      // Drawing Mode nach dem Zeichnen deaktivieren
+      manager.setDrawingMode(null);
+      onDrawingModeChange(null);
+    });
+  };
 
   // Drawing Mode ändern
   useEffect(() => {
     if (drawingManager) {
-      let drawingModeValue = null;
-      if (drawingMode === 'line') {
-        drawingModeValue = (window as any).google.maps.drawing.OverlayType.POLYLINE;
+      if (drawingMode === 'distance') {
+        drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
       } else if (drawingMode === 'area') {
-        drawingModeValue = (window as any).google.maps.drawing.OverlayType.POLYGON;
+        drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+      } else {
+        drawingManager.setDrawingMode(null);
       }
-      drawingManager.setDrawingMode(drawingModeValue);
     }
   }, [drawingMode, drawingManager]);
 
-  // Projekt-Marker rendern
+  // Projekt-Marker erstellen
   useEffect(() => {
-    if (map && projects) {
-      // Vorherige Marker entfernen
-      googleMarkers.forEach(marker => marker.setMap(null));
-      
-      const newMarkers = projects
-        .filter(project => 
-          project.latitude && 
-          project.longitude && 
-          typeof project.latitude === 'number' && 
-          typeof project.longitude === 'number' &&
-          !isNaN(project.latitude) &&
-          !isNaN(project.longitude)
-        )
-        .map(project => {
-          console.log('Creating project marker for:', project.name);
-          
-          const marker = new (window as any).google.maps.Marker({
-            position: { 
-              lat: Number(project.latitude), 
-              lng: Number(project.longitude) 
-            },
-            map: map,
-            title: project.name,
-            icon: {
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg width="56" height="56" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="28" cy="28" r="24" fill="#10b981" stroke="#ffffff" stroke-width="4"/>
-                  <circle cx="28" cy="28" r="8" fill="#ffffff"/>
-                  <text x="28" y="35" text-anchor="middle" fill="#10b981" font-size="18" font-weight="bold">P</text>
-                </svg>
-              `),
-              scaledSize: new (window as any).google.maps.Size(56, 56)
-            },
-            animation: (window as any).google.maps.Animation.BOUNCE
-          });
+    if (!mapRef.current || !isLoaded) return;
 
-          // Animation nach 2 Sekunden stoppen
-          setTimeout(() => {
-            if (marker) {
-              marker.setAnimation(null);
-            }
-          }, 2000);
-
-          // Info Window für Projekt-Details
-          const infoWindow = new (window as any).google.maps.InfoWindow({
-            content: `
-              <div style="max-width: 250px;">
-                <h3 style="margin: 0 0 8px 0; color: #1f2937; font-weight: bold;">${project.name}</h3>
-                <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">${project.description || 'Keine Beschreibung'}</p>
-                <div style="display: flex; gap: 8px;">
-                  <span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${project.status}</span>
-                </div>
-                <button onclick="window.selectProject(${project.id})" style="
-                  margin-top: 8px; 
-                  padding: 6px 12px; 
-                  background: #2563eb; 
-                  color: white; 
-                  border: none; 
-                  border-radius: 4px; 
-                  cursor: pointer;
-                  font-size: 14px;
-                ">Projekt öffnen</button>
-              </div>
-            `
-          });
-
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
-          });
-
-          return marker;
+    // Alle bestehenden Marker entfernen
+    projects.forEach(project => {
+      if (project.latitude && project.longitude) {
+        const marker = new google.maps.Marker({
+          position: { lat: parseFloat(project.latitude as string), lng: parseFloat(project.longitude as string) },
+          map: mapRef.current,
+          title: project.name,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="12" fill="#2563eb" stroke="white" stroke-width="2"/>
+                <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">P</text>
+              </svg>
+            `),
+            scaledSize: new google.maps.Size(32, 32)
+          }
         });
 
-      setGoogleMarkers(newMarkers);
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="min-width: 200px;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold;">${project.name}</h3>
+              <p style="margin: 0 0 8px 0; color: #666;">${project.description || 'Keine Beschreibung'}</p>
+              <p style="margin: 0; font-size: 12px; color: #888;">ID: ${project.id}</p>
+            </div>
+          `
+        });
 
-      // Global function für Projekt-Auswahl
-      (window as any).selectProject = (projectId: number) => {
-        const project = projects.find(p => p.id === projectId);
-        if (project) onProjectSelect(project);
-      };
-    }
-  }, [map, projects]);
-
-  // Custom Marker rendern
-  useEffect(() => {
-    if (map && markers && markers.length > 0) {
-      markers.forEach(markerData => {
-        // Koordinaten validieren
-        if (typeof markerData.lat === 'number' && 
-            typeof markerData.lng === 'number' && 
-            !isNaN(markerData.lat) && 
-            !isNaN(markerData.lng)) {
-          
-          console.log('Creating custom marker:', markerData);
-          
-          const marker = new (window as any).google.maps.Marker({
-            position: { 
-              lat: Number(markerData.lat), 
-              lng: Number(markerData.lng) 
-            },
-            map: map,
-            title: markerData.title,
-            icon: {
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg width="48" height="48" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="24" cy="24" r="20" fill="${markerData.color}" stroke="#ffffff" stroke-width="4"/>
-                  <circle cx="24" cy="24" r="8" fill="#ffffff"/>
-                  <text x="24" y="30" text-anchor="middle" fill="#000000" font-size="16" font-weight="bold">M</text>
-                </svg>
-              `),
-              scaledSize: new (window as any).google.maps.Size(48, 48)
-            },
-            animation: (window as any).google.maps.Animation.DROP
-          });
-          
-          console.log('Marker created successfully');
-
-          const infoWindow = new (window as any).google.maps.InfoWindow({
-            content: `
-              <div>
-                <h4>${markerData.title}</h4>
-                <p>${markerData.description}</p>
-                <small>Erstellt: ${new Date(markerData.createdAt).toLocaleDateString('de-DE')}</small>
-              </div>
-            `
-          });
-
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
-          });
-        }
-      });
-    }
-  }, [map, markers]);
-
-  // Messungen rendern
-  useEffect(() => {
-    if (map && measurements) {
-      measurements.forEach(measurement => {
-        if (measurement.type === 'line') {
-          const polyline = new (window as any).google.maps.Polyline({
-            path: measurement.points,
-            geodesic: true,
-            strokeColor: '#ff0000',
-            strokeOpacity: 1.0,
-            strokeWeight: 3,
-            map: map
-          });
-
-          // Label für Distanz
-          const midpoint = measurement.points[Math.floor(measurement.points.length / 2)];
-          const label = new (window as any).google.maps.InfoWindow({
-            content: `<div style="background: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">${measurement.title}</div>`,
-            position: midpoint
-          });
-          label.open(map);
-        }
-      });
-    }
-  }, [map, measurements]);
-
-  // Suchmarker handhaben
-  useEffect(() => {
-    if (map && searchLocation && 
-        typeof searchLocation.lat === 'number' && 
-        typeof searchLocation.lng === 'number' &&
-        !isNaN(searchLocation.lat) && 
-        !isNaN(searchLocation.lng)) {
-      
-      if (searchMarker) {
-        searchMarker.setMap(null);
+        marker.addListener('click', () => {
+          infoWindow.open(mapRef.current, marker);
+          onProjectSelect(project);
+        });
       }
+    });
+  }, [projects, isLoaded, onProjectSelect]);
 
-      const newSearchMarker = new (window as any).google.maps.Marker({
-        position: { 
-          lat: Number(searchLocation.lat), 
-          lng: Number(searchLocation.lng) 
-        },
-        map: map,
-        title: 'Suchergebnis: ' + searchLocation.address,
+  // Custom Marker erstellen
+  useEffect(() => {
+    if (!mapRef.current || !isLoaded) return;
+
+    markers.forEach(customMarker => {
+      const marker = new google.maps.Marker({
+        position: { lat: customMarker.lat, lng: customMarker.lng },
+        map: mapRef.current,
+        title: customMarker.title,
         icon: {
           url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="16" fill="#dc2626" stroke="#ffffff" stroke-width="3"/>
-              <circle cx="20" cy="20" r="8" fill="#ffffff"/>
+            <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="14" cy="14" r="10" fill="${customMarker.color}" stroke="white" stroke-width="2"/>
+              <text x="14" y="18" text-anchor="middle" fill="white" font-size="10" font-weight="bold">M</text>
             </svg>
           `),
-          scaledSize: new (window as any).google.maps.Size(40, 40)
-        },
-        animation: (window as any).google.maps.Animation.BOUNCE
-      });
-
-      setSearchMarker(newSearchMarker);
-      map.panTo({ 
-        lat: Number(searchLocation.lat), 
-        lng: Number(searchLocation.lng) 
-      });
-      map.setZoom(16);
-
-      // Animation nach 3 Sekunden stoppen
-      setTimeout(() => {
-        if (newSearchMarker) {
-          newSearchMarker.setAnimation(null);
+          scaledSize: new google.maps.Size(28, 28)
         }
-      }, 3000);
-    }
-  }, [map, searchLocation]);
+      });
 
-  return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />;
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="min-width: 180px;">
+            <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: bold;">${customMarker.title}</h4>
+            <p style="margin: 0; color: #666; font-size: 12px;">${customMarker.description}</p>
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(mapRef.current, marker);
+      });
+    });
+  }, [markers, isLoaded]);
+
+  // Zur Suchposition springen
+  useEffect(() => {
+    if (!mapRef.current || !searchLocation) return;
+
+    mapRef.current.setCenter({ lat: searchLocation.lat, lng: searchLocation.lng });
+    mapRef.current.setZoom(17);
+
+    // Temporären Marker für Suchposition setzen
+    const searchMarker = new google.maps.Marker({
+      position: { lat: searchLocation.lat, lng: searchLocation.lng },
+      map: mapRef.current,
+      icon: {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+          <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="14" fill="#ef4444" stroke="white" stroke-width="3"/>
+            <text x="18" y="22" text-anchor="middle" fill="white" font-size="14" font-weight="bold">📍</text>
+          </svg>
+        `),
+        scaledSize: new google.maps.Size(36, 36)
+      },
+      animation: google.maps.Animation.BOUNCE
+    });
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div style="min-width: 200px;">
+          <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: bold;">Gefundene Adresse</h4>
+          <p style="margin: 0; color: #666; font-size: 12px;">${searchLocation.address}</p>
+        </div>
+      `
+    });
+
+    infoWindow.open(mapRef.current, searchMarker);
+
+    // Marker nach 10 Sekunden entfernen
+    setTimeout(() => {
+      searchMarker.setMap(null);
+      infoWindow.close();
+    }, 10000);
+  }, [searchLocation]);
+
+  return (
+    <div
+      style={{ height: '100%', width: '100%' }}
+      ref={(node) => {
+        if (node && !mapRef.current) {
+          const map = new google.maps.Map(node, {
+            center: { lat: 49.7913, lng: 9.9534 }, // Würzburg
+            zoom: 13,
+            mapTypeId: 'hybrid',
+            streetViewControl: false,
+            mapTypeControl: true,
+            fullscreenControl: false,
+            zoomControl: true,
+            gestureHandling: 'greedy'
+          });
+          initMap(map);
+        }
+      }}
+    />
+  );
 }
 
-// Hauptkomponente
-export default function EnhancedMaps() {
+export default function MapsEnhanced() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
-  // States für erweiterte Funktionen
   const [markers, setMarkers] = useState<CustomMarker[]>([]);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
-  const [drawingMode, setDrawingMode] = useState<string>('');
-  const [showMarkerDialog, setShowMarkerDialog] = useState(false);
-  const [newMarker, setNewMarker] = useState({
-    title: '',
-    description: '',
-    type: 'marker' as const,
-    color: '#2563eb'
+  const [drawingMode, setDrawingMode] = useState<string | null>(null);
+
+  // Maps-Konfiguration laden
+  const { data: mapsConfig } = useQuery({
+    queryKey: ['/api/config/maps'],
   });
 
   // Projekte laden
   const { data: projects = [], isLoading } = useQuery<Project[]>({
-    queryKey: ["/api/projects"],
+    queryKey: ['/api/projects'],
   });
 
-  // Google Maps API Key laden
-  const { data: mapsConfig } = useQuery<{ apiKey?: string }>({
-    queryKey: ["/api/config/maps-key"],
-  });
+  // URL-Parameter für Projektauswahl prüfen
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('project');
+    const address = urlParams.get('address');
+    const lat = urlParams.get('lat');
+    const lng = urlParams.get('lng');
+
+    if (projectId && projects.length > 0) {
+      const project = projects.find(p => p.id === parseInt(projectId));
+      if (project) {
+        setSelectedProject(project);
+        if (project.latitude && project.longitude) {
+          setSearchLocation({
+            lat: parseFloat(project.latitude as string),
+            lng: parseFloat(project.longitude as string),
+            address: `${project.name} - ${address || 'Projektstandort'}`
+          });
+        }
+      }
+    } else if (lat && lng && address) {
+      setSearchLocation({
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        address: decodeURIComponent(address)
+      });
+    }
+  }, [projects]);
 
   // Marker hinzufügen
-  const handleMarkerAdd = (marker: Omit<CustomMarker, 'id' | 'createdAt'>) => {
-    const newMarkerData: CustomMarker = {
-      ...marker,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    };
-    setMarkers(prev => [...prev, newMarkerData]);
+  const handleMarkerAdd = (marker: CustomMarker) => {
+    setMarkers(prev => [...prev, marker]);
     toast({
       title: "Marker hinzugefügt",
-      description: `Neuer Marker "${marker.title}" wurde erstellt.`,
+      description: `${marker.title} wurde zur Karte hinzugefügt.`,
     });
   };
 
   // Messung hinzufügen
-  const handleMeasurementAdd = (measurement: Omit<Measurement, 'id'>) => {
-    const newMeasurement: Measurement = {
-      ...measurement,
-      id: Date.now().toString()
-    };
-    setMeasurements(prev => [...prev, newMeasurement]);
+  const handleMeasurementAdd = (measurement: Measurement) => {
+    setMeasurements(prev => [...prev, measurement]);
     toast({
       title: "Messung hinzugefügt",
-      description: measurement.type === 'line' 
-        ? `Distanz: ${measurement.distance}m` 
-        : `Fläche: ${measurement.distance}m²`,
+      description: `${measurement.title} wurde zur Karte hinzugefügt.`,
     });
   };
 
-  // Karte als PDF exportieren
-  const exportToPDF = () => {
-    toast({
-      title: "PDF Export",
-      description: "PDF-Export wird vorbereitet...",
-    });
-    // Hier würde die PDF-Generierung implementiert werden
+  // Test-Marker hinzufügen
+  const addTestMarker = () => {
+    const testMarker: CustomMarker = {
+      id: Date.now().toString(),
+      lat: 49.7913 + (Math.random() - 0.5) * 0.01,
+      lng: 9.9534 + (Math.random() - 0.5) * 0.01,
+      title: `Test Marker ${markers.length + 1}`,
+      description: 'Automatisch generierter Test-Marker',
+      type: 'marker',
+      color: '#10b981',
+      icon: 'marker',
+      createdAt: new Date().toISOString()
+    };
+    handleMarkerAdd(testMarker);
   };
 
   // Alle Marker löschen
@@ -530,178 +425,125 @@ export default function EnhancedMaps() {
               Zurück
             </Button>
           </Link>
-          <h1 className="text-xl font-semibold text-gray-900">Tiefbau Map</h1>
+          <h1 className="text-xl font-bold text-gray-900">Projektstandorte</h1>
         </div>
+
+        {/* Kompakte Toolbar */}
         <div className="flex items-center space-x-2">
-          <Select value={selectedProject?.id.toString() || ""} onValueChange={(value) => {
-            const project = projects.find(p => p.id.toString() === value);
-            setSelectedProject(project || null);
-          }}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Projekt auswählen" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Alle Projekte</SelectItem>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id.toString()}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Button
+            variant={drawingMode === 'distance' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDrawingMode(drawingMode === 'distance' ? null : 'distance')}
+          >
+            <Ruler className="h-4 w-4 mr-1" />
+            Distanz
+          </Button>
+
+          <Button
+            variant={drawingMode === 'area' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setDrawingMode(drawingMode === 'area' ? null : 'area')}
+          >
+            <Layers className="h-4 w-4 mr-1" />
+            Fläche
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addTestMarker}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Test Marker
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearAllMarkers}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Löschen
+          </Button>
         </div>
       </div>
 
+      {/* Hauptbereich mit Seitenleiste und Karte */}
       <div className="flex-1 flex">
-        {/* Seitliche Toolbar */}
-        <div className="w-80 bg-white border-r shadow-sm p-4 overflow-y-auto">
-          {/* Baustellenstandort Eingabefelder */}
-          <div className="space-y-4 mb-6">
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Baustellenstandort:</Label>
-              <Input placeholder="Stadt/Gemeinde" className="mt-1" />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Baustellenstraße:</Label>
-              <Input placeholder="Straße und Hausnummer" className="mt-1" />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-gray-700">Baustellenpostleitzahl:</Label>
-              <Input placeholder="PLZ" className="mt-1" />
-            </div>
-          </div>
-
-          {/* Adresssuche */}
-          <div className="mb-6">
-            <DirectAddressSearch
-              onLocationSelect={(location) => setSearchLocation(location)}
-              placeholder="Adresse suchen..."
-            />
-          </div>
-
-          {/* Zeichenwerkzeuge */}
-          <div className="space-y-3 mb-6">
-            <h3 className="font-medium text-gray-900">Werkzeuge</h3>
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                variant={drawingMode === 'marker' ? 'default' : 'outline'}
-                onClick={() => setDrawingMode(drawingMode === 'marker' ? '' : 'marker')}
-                className="w-full justify-start"
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Marker setzen
-              </Button>
-              <Button
-                variant={drawingMode === 'line' ? 'default' : 'outline'}
-                onClick={() => setDrawingMode(drawingMode === 'line' ? '' : 'line')}
-                className="w-full justify-start"
-              >
-                <Ruler className="h-4 w-4 mr-2" />
-                Distanz messen
-              </Button>
-              <Button
-                variant={drawingMode === 'area' ? 'default' : 'outline'}
-                onClick={() => setDrawingMode(drawingMode === 'area' ? '' : 'area')}
-                className="w-full justify-start"
-              >
-                <Layers className="h-4 w-4 mr-2" />
-                Fläche messen
-              </Button>
-            </div>
-          </div>
-
-          {/* Route-Funktionen */}
-          <div className="space-y-3 mb-6">
-            <h3 className="font-medium text-gray-900">Route</h3>
-            <div className="bg-gray-50 border rounded-lg p-3">
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Route Start:</span>
-                  <div className="text-gray-600">Kein Startpunkt</div>
-                </div>
-                <div>
-                  <span className="font-medium">Route Ende:</span>
-                  <div className="text-gray-600">Kein Endpunkt</div>
-                </div>
-                <div>
-                  <span className="font-medium">Streckenlänge:</span>
-                  <div className="text-gray-600">Keine Route</div>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" variant="outline" className="flex-1">
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Route löschen
-                </Button>
-                <Button size="sm" variant="outline" className="flex-1">
-                  <Save className="h-3 w-3 mr-1" />
-                  Route speichern
-                </Button>
-                <Button size="sm" variant="outline" className="flex-1">
-                  <Download className="h-3 w-3 mr-1" />
-                  PDF-Bericht
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Kartenoptionen */}
-          <div className="space-y-3 mb-6">
-            <h3 className="font-medium text-gray-900">Kartenoptionen</h3>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="flex-1">
-                Karte
-              </Button>
-              <Button size="sm" variant="outline" className="flex-1">
-                Satellit
-              </Button>
-            </div>
-          </div>
-
-            {/* Aktiver Modus Anzeige */}
-            {drawingMode && (
-              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-base font-medium text-blue-800">
-                  {drawingMode === 'marker' && '📍 Klicken Sie auf die Karte, um einen Marker zu setzen'}
-                  {drawingMode === 'line' && '📏 Klicken Sie auf die Karte, um eine Distanz zu messen'}
-                  {drawingMode === 'area' && '📐 Klicken Sie auf die Karte, um eine Fläche zu messen'}
-                </p>
-              </div>
-            )}
-
-            {/* Debug Info */}
-            <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded-md">
-              <p className="text-sm text-gray-600">
-                Projekte: {projects.length} | Marker: {markers.length} | Messungen: {measurements.length}
-                {selectedProject && ` | Ausgewählt: ${selectedProject.name}`}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Aktueller Modus: {drawingMode || 'Kein Modus'} | 
-                Projekte mit Koordinaten: {projects.filter(p => p.latitude && p.longitude).length}
-              </p>
+        {/* Kompakte Seitenleiste */}
+        <Card className="w-80 m-4 mr-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Kartentools</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Adresssuche */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Adresse suchen</Label>
+              <DirectAddressSearch onLocationSelect={setSearchLocation} />
             </div>
 
-            {/* Test Marker Button */}
-            <div className="mt-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => {
-                  const testMarker = {
-                    lat: 48.1351 + (Math.random() - 0.5) * 0.01,
-                    lng: 11.5820 + (Math.random() - 0.5) * 0.01,
-                    title: `Test Marker ${Date.now()}`,
-                    description: 'Test Marker für Debugging',
-                    type: 'marker' as const,
-                    color: '#ef4444',
-                    icon: '🔴'
-                  };
-                  handleMarkerAdd(testMarker);
+            {/* Projekt-Auswahl */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Projekt auswählen</Label>
+              <Select
+                value={selectedProject?.id.toString() || ''}
+                onValueChange={(value) => {
+                  const project = projects.find(p => p.id === parseInt(value));
+                  setSelectedProject(project || null);
+                  if (project?.latitude && project?.longitude) {
+                    setSearchLocation({
+                      lat: parseFloat(project.latitude as string),
+                      lng: parseFloat(project.longitude as string),
+                      address: project.name
+                    });
+                  }
                 }}
               >
-                <Plus className="h-4 w-4 mr-1" />
-                Test Marker
-              </Button>
+                <SelectTrigger>
+                  <SelectValue placeholder="Projekt wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.filter(p => p.latitude && p.longitude).map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fachgeoportale */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Fachgeoportale</Label>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('https://geoportal.bayern.de/bayernatlas/', '_blank')}
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  BayernAtlas
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('https://www.lfu.bayern.de/boden/bodenkundliche_karte_bayern/index.htm', '_blank')}
+                >
+                  <Layers className="h-4 w-4 mr-2" />
+                  LfU Bodeninformationen
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => window.open('https://www.bgr.bund.de/DE/Themen/GG_Geoportal/geoportal_node.html', '_blank')}
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  BGR Geoportal
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -710,9 +552,9 @@ export default function EnhancedMaps() {
         <div className="flex-1 mx-4 mb-4">
           <Card className="h-full">
             <CardContent className="p-0 h-full">
-              {mapsConfig && mapsConfig.apiKey ? (
+              {mapsConfig && (mapsConfig as any).apiKey ? (
                 <Wrapper
-                  apiKey={mapsConfig.apiKey}
+                  apiKey={(mapsConfig as any).apiKey}
                   libraries={['drawing', 'geometry']}
                   render={(status: Status) => {
                     if (status === Status.LOADING) return <div className="h-full flex items-center justify-center">Lade Google Maps...</div>;
@@ -741,35 +583,35 @@ export default function EnhancedMaps() {
             </CardContent>
           </Card>
         </div>
+      </div>
 
-        {/* Statistiken */}
-        <div className="mx-4 mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{projects.filter(p => p.latitude && p.longitude).length}</div>
-                <div className="text-sm text-gray-600">Projekte auf Karte</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{markers.length}</div>
-                <div className="text-sm text-gray-600">Custom Marker</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-600">{measurements.filter(m => m.type === 'line').length}</div>
-                <div className="text-sm text-gray-600">Distanzmessungen</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">{measurements.filter(m => m.type === 'area').length}</div>
-                <div className="text-sm text-gray-600">Flächenmessungen</div>
-              </CardContent>
-            </Card>
-          </div>
+      {/* Statistiken */}
+      <div className="mx-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{projects.filter(p => p.latitude && p.longitude).length}</div>
+              <div className="text-sm text-gray-600">Projekte auf Karte</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{markers.length}</div>
+              <div className="text-sm text-gray-600">Custom Marker</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-orange-600">{measurements.filter(m => m.type === 'line').length}</div>
+              <div className="text-sm text-gray-600">Distanzmessungen</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">{measurements.filter(m => m.type === 'area').length}</div>
+              <div className="text-sm text-gray-600">Flächenmessungen</div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
