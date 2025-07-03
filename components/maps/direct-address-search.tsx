@@ -14,114 +14,177 @@ interface AddressSearchProps {
 
 export const DirectAddressSearch: React.FC<AddressSearchProps> = ({
   onLocationSelect,
-  placeholder = "Adresse suchen...",
+  placeholder = "Adresse, PLZ oder Hausnummer suchen (z.B. 80331 München, Maximilianstraße 15)...",
 }) => {
   const [query, setQuery] = useState("");
   const [predictions, setPredictions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Verbesserte Geocoding-Funktion mit mehreren APIs
-  const searchWithMultipleAPIs = async (searchQuery: string) => {
+  // Optimierte Adresssuche mit verbesserter Hausnummer- und PLZ-Unterstützung
+  const searchWithOptimizedAPI = async (searchQuery: string) => {
     if (searchQuery.length < 3) return;
     
     setIsLoading(true);
     try {
-      // Parallel API calls für bessere Geschwindigkeit und Vollständigkeit
-      const [nominatimResults, photonResults, overpassResults] = await Promise.allSettled([
-        // Nominatim mit erweiterten Parametern für bessere Straßensuche
-        fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=de&limit=20&addressdetails=1&extratags=1&namedetails=1&dedupe=0&viewbox=5.98865807458,54.983104153,15.0169958839,47.3024876979&bounded=0`
-        ).then(res => res.json()),
-        
-        // Photon mit erweiterten Tags
-        fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(searchQuery)}&limit=15&lang=de&bbox=5.98865807458,47.3024876979,15.0169958839,54.983104153`
-        ).then(res => res.json()),
-        
-        // Zusätzliche Suche speziell für Straßennamen
-        fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(searchQuery)}&countrycodes=de&limit=15&addressdetails=1&dedupe=0`
-        ).then(res => res.json())
-      ]);
+      // Eingabe analysieren für bessere API-Parameter
+      const hasNumbers = /\d/.test(searchQuery);
+      const hasPostcode = /^\d{5}/.test(searchQuery.trim());
+      const hasHouseNumber = /\d+[a-zA-Z]?\s*$/.test(searchQuery);
+      
+      console.log('🔍 Search analysis:', { hasNumbers, hasPostcode, hasHouseNumber, query: searchQuery });
+      
+      let searchPromises = [];
+      
+      // Haupt-Suche mit optimierten Parametern
+      if (hasPostcode) {
+        // PLZ-spezifische Suche
+        searchPromises.push(
+          fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&postalcode=${encodeURIComponent(searchQuery.trim())}&countrycodes=de&limit=10&addressdetails=1&dedupe=1`
+          ).then(res => res.json()).then(data => ({ source: 'PLZ-Suche', data }))
+        );
+      } else if (hasHouseNumber) {
+        // Hausnummer-spezifische Suche
+        searchPromises.push(
+          fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=de&limit=15&addressdetails=1&dedupe=1&layer=address`
+          ).then(res => res.json()).then(data => ({ source: 'Adress-Suche', data }))
+        );
+      } else {
+        // Standard-Ortssuche für Städte/Straßen (nur Deutschland)
+        searchPromises.push(
+          fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=de&limit=12&addressdetails=1&dedupe=1&layer=address,locality&bounded=1&viewbox=5.866,47.270,15.042,55.058`
+          ).then(res => res.json()).then(data => ({ source: 'Standard-Suche', data }))
+        );
+      }
+      
+      // Nominatim Fallback für bessere Deutschland-Abdeckung
+      if (!hasPostcode) {
+        searchPromises.push(
+          fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&countrycodes=de&limit=8&addressdetails=1&dedupe=1&bounded=1&viewbox=5.866,47.270,15.042,55.058`
+          ).then(res => res.json()).then(data => ({ source: 'Deutschland-Suche', data }))
+        );
+      }
+
+      const results = await Promise.allSettled(searchPromises);
 
       let allResults: any[] = [];
 
-      // Nominatim-Ergebnisse verarbeiten
-      if (nominatimResults.status === 'fulfilled' && nominatimResults.value) {
-        const formatted = nominatimResults.value.map((result: any, index: number) => ({
-          place_id: `nominatim_${index}`,
-          description: result.display_name,
-          structured_formatting: {
-            main_text: result.name || result.display_name.split(',')[0],
-            secondary_text: result.display_name.split(',').slice(1).join(',').trim()
-          },
-          geometry: {
-            location: {
-              lat: parseFloat(result.lat),
-              lng: parseFloat(result.lon)
-            }
-          },
-          source: 'Nominatim'
-        }));
-        allResults = [...allResults, ...formatted];
-      }
+      // Ergebnisse verarbeiten
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          const { source, data } = result.value;
+          
+          if (source === 'Photon' && data.features) {
+            // Photon-Ergebnisse (nur Deutschland)
+            const formatted = data.features
+              .filter((item: any) => {
+                const props = item.properties;
+                return props.country === 'Deutschland' || props.country === 'Germany' || 
+                       props.countrycode === 'DE' || props.state?.includes('Deutschland');
+              })
+              .map((item: any, idx: number) => {
+              const props = item.properties;
+              const coords = item.geometry.coordinates;
+              
+              let mainText = props.name || props.street || searchQuery;
+              let secondaryText = '';
+              
+              if (props.housenumber) {
+                mainText = `${props.street || props.name} ${props.housenumber}`;
+              }
+              
+              const addressParts = [];
+              if (props.postcode) addressParts.push(props.postcode);
+              if (props.city) addressParts.push(props.city);
+              if (props.state && props.state !== props.city) addressParts.push(props.state);
+              if (addressParts.length === 0) addressParts.push('Deutschland');
+              secondaryText = addressParts.join(', ');
+              
+              return {
+                place_id: `photon_${idx}`,
+                description: `${mainText}, ${secondaryText}`,
+                structured_formatting: {
+                  main_text: mainText,
+                  secondary_text: secondaryText
+                },
+                geometry: {
+                  location: {
+                    lat: coords[1],
+                    lng: coords[0]
+                  }
+                },
+                source: source,
+                priority: props.housenumber ? 3 : (props.postcode ? 2 : 1)
+              };
+            });
+            allResults = [...allResults, ...formatted];
+          } else if (Array.isArray(data)) {
+            // Nominatim-Ergebnisse
+            const formatted = data.map((item: any, idx: number) => {
+              const address = item.address || {};
+              let mainText = item.name || item.display_name.split(',')[0];
+              
+              // Verbesserte Adressformatierung
+              if (address.house_number && address.road) {
+                mainText = `${address.road} ${address.house_number}`;
+              } else if (address.road) {
+                mainText = address.road;
+              }
+              
+              const addressParts = [];
+              if (address.postcode) addressParts.push(address.postcode);
+              if (address.city || address.town || address.village) {
+                addressParts.push(address.city || address.town || address.village);
+              }
+              if (address.state && address.state !== (address.city || address.town)) {
+                addressParts.push(address.state);
+              }
+              const secondaryText = addressParts.length > 0 ? addressParts.join(', ') : item.display_name.split(',').slice(1).join(',').trim();
+              
+              return {
+                place_id: `nominatim_${idx}`,
+                description: `${mainText}, ${secondaryText}`,
+                structured_formatting: {
+                  main_text: mainText,
+                  secondary_text: secondaryText
+                },
+                geometry: {
+                  location: {
+                    lat: parseFloat(item.lat),
+                    lng: parseFloat(item.lon)
+                  }
+                },
+                source: source,
+                priority: address.house_number ? 3 : (address.postcode ? 2 : 1)
+              };
+            });
+            allResults = [...allResults, ...formatted];
+          }
+        }
+      });
 
-      // Photon-Ergebnisse verarbeiten
-      if (photonResults.status === 'fulfilled' && photonResults.value?.features) {
-        const formatted = photonResults.value.features.map((result: any, index: number) => ({
-          place_id: `photon_${index}`,
-          description: `${result.properties.name || result.properties.street}, ${result.properties.city || result.properties.state}, Deutschland`,
-          structured_formatting: {
-            main_text: result.properties.name || result.properties.street || searchQuery,
-            secondary_text: `${result.properties.city || result.properties.state}, Deutschland`
-          },
-          geometry: {
-            location: {
-              lat: result.geometry.coordinates[1],
-              lng: result.geometry.coordinates[0]
-            }
-          },
-          source: 'Photon'
-        }));
-        allResults = [...allResults, ...formatted];
-      }
-
-      // Straßenspezifische Nominatim-Ergebnisse verarbeiten
-      if (overpassResults.status === 'fulfilled' && overpassResults.value) {
-        const formatted = overpassResults.value.map((result: any, index: number) => ({
-          place_id: `street_${index}`,
-          description: result.display_name,
-          structured_formatting: {
-            main_text: result.name || result.display_name.split(',')[0],
-            secondary_text: result.display_name.split(',').slice(1).join(',').trim()
-          },
-          geometry: {
-            location: {
-              lat: parseFloat(result.lat),
-              lng: parseFloat(result.lon)
-            }
-          },
-          source: 'Straßensuche'
-        }));
-        allResults = [...allResults, ...formatted];
-      }
 
 
-
-      // Duplikate entfernen und nach Relevanz sortieren
-      const uniqueResults = allResults.filter((result, index, self) => 
-        index === self.findIndex(r => 
-          Math.abs(r.geometry.location.lat - result.geometry.location.lat) < 0.001 &&
-          Math.abs(r.geometry.location.lng - result.geometry.location.lng) < 0.001
+      // Duplikate entfernen und nach Priorität sortieren
+      const uniqueResults = allResults
+        .filter((result, index, self) => 
+          index === self.findIndex(r => 
+            Math.abs(r.geometry.location.lat - result.geometry.location.lat) < 0.0001 &&
+            Math.abs(r.geometry.location.lng - result.geometry.location.lng) < 0.0001
+          )
         )
-      ).slice(0, 15); // Max 15 Ergebnisse
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0)) // Hausnummern zuerst
+        .slice(0, 12); // Max 12 Ergebnisse für bessere Performance
       
-      console.log('Combined search results:', uniqueResults);
+      console.log('🎯 Optimized search results:', uniqueResults.length, 'found for:', searchQuery);
       setPredictions(uniqueResults);
       setShowSuggestions(uniqueResults.length > 0);
     } catch (error) {
-      console.error('Multi-API search error:', error);
+      console.error('🚨 Address search error:', error);
       setPredictions([]);
       setShowSuggestions(false);
     } finally {
@@ -142,10 +205,10 @@ export const DirectAddressSearch: React.FC<AddressSearchProps> = ({
     }
     
     if (value.length >= 3) {
-      // Neue Suche mit 300ms Verzögerung starten
+      // Neue Suche mit 400ms Verzögerung für stabilere Ergebnisse
       const timeout = setTimeout(() => {
-        searchWithMultipleAPIs(value);
-      }, 300);
+        searchWithOptimizedAPI(value);
+      }, 400);
       setSearchTimeout(timeout);
     } else {
       setPredictions([]);
@@ -154,9 +217,16 @@ export const DirectAddressSearch: React.FC<AddressSearchProps> = ({
   };
 
   const handlePredictionClick = (prediction: any) => {
-    console.log('Selected prediction:', prediction);
+    console.log('🎯 Selected prediction:', prediction);
     setQuery(prediction.description);
     setShowSuggestions(false);
+    
+    // Detaillierte Ausgabe für Debugging
+    console.log('📍 Selected location data:', {
+      address: prediction.description,
+      lat: prediction.geometry.location.lat,
+      lng: prediction.geometry.location.lng
+    });
     
     onLocationSelect({
       address: prediction.description,
